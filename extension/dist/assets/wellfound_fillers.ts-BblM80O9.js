@@ -1,1 +1,0 @@
-import{t as e}from"./rolldown-runtime-D9-fqq9M.js";var t=e((()=>{console.log(`CareerMatch extension loaded on Wellfound`)}));export default t();
