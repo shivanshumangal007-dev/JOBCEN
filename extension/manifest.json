@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "JOBCEN - dev",
+  "version": "0.1",
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  },
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://wellfound.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://wellfound.com/*"],
+      "js": ["src/content_scripts/fillers/wellfound_fillers.ts"]
+    }
+  ]
+}
