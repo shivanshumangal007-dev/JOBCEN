@@ -14,7 +14,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         email = user.email,
         username = user.username,
         hashed_password = hashed_password,
-        is_active = True
+        is_active = False
     )
     db.add(db_user)
     await db.flush()

@@ -27,3 +27,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: str | None = None
+
+class VerifyOTP(BaseModel):
+    otp: str
+    otp_token: str
