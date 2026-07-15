@@ -9,7 +9,7 @@
   "host_permissions": ["https://wellfound.com/*"],
   "content_scripts": [
     {
-      "matches": ["https://wellfound.com/*"],
+      "matches": ["https://wellfound.com/profile/edit*"],
       "js": ["src/content_scripts/fillers/wellfound_fillers.ts"]
     }
   ]
