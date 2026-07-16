@@ -149,72 +149,71 @@ async function fillWellfoundOpenToRole(roleArr: string[]) {
       continue;
     }
     await simulateTyping(roleField, role)
-    // setReactInputValue(roleField, role);
 
-    const options = await waitForElement(".select__option");
+    // wait for suggestions
+    const options = await waitForElement(".select__option", 800);
     if (!options) {
-      console.warn("CareerMatch: no suggestions appeared for", role);
-      continue;
-    }
-    console.log(options);
-    const match = Array.from(options).find((opt) =>
-      opt
-        .querySelector("span")
-        ?.textContent?.toLowerCase()
-        .includes(role.toLowerCase()),
-    ) as HTMLElement | undefined;
-
-    if (!match) {
-      console.warn(`CareerMatch: no role match found for "${role}"`);
+      console.warn("CareerMatch: no suggestions for", role);
       continue;
     }
 
-    simulateFullClick(match)
-    // let the chip render and the input clear before typing the next role
-    await new Promise((res) => setTimeout(res, 300));
+    // ALWAYS pick the first option for auto-complete
+    const firstOption = document.querySelector(".select__option");
+    if (!firstOption) {
+      console.warn("CareerMatch: no selectable option found for", role);
+      continue;
+    }
+
+    simulateFullClick(firstOption as HTMLElement);
+    console.log("selected (first option):", role);
+    // small pause so the chip renders
+    await new Promise((r) => setTimeout(r, 200));
+
   }
 }
-// async function fillLocation(placeName: string) {
-//   const closeBtn = document.querySelector(
-//     ".styles_close__oAq6U",
-//   ) as HTMLElement | null;
-//   if (closeBtn) {
-//     closeBtn.click();
-//     await waitForElement('[data-test="Downshift--input"]');
-//   }
 
-//   const input = document.querySelector(
-//     '[data-test="Downshift--input"]',
-//   ) as HTMLInputElement | null;
-//   if (!input) {
-//     console.warn("CareerMatch: location input not found");
-//     return false;
-//   }
+// social handles
+function fillWellfoundBioWebsiteUrl(url: string) {
+  const BioUrlField = document.getElementById(
+    "form-input--onlineBioUrl",
+  ) as HTMLInputElement | null;
+  if (!BioUrlField) {
+    console.warn("CareerMatch: BioUrl field not found on page");
+    return;
+  }
+  setReactInputValue(BioUrlField, url);
+}
+function fillWellfoundLinkedinUrl(url: string) {
+  const LinkedinUrlField = document.getElementById(
+    "form-input--linkedinUrl",
+  ) as HTMLInputElement | null;
+  if (!LinkedinUrlField) {
+    console.warn("CareerMatch: LinkedinUrl field not found on page");
+    return;
+  }
+  setReactInputValue(LinkedinUrlField, url);
+}
+function fillWellfoundGithubUrl(url: string) {
+  const GithubUrlField = document.getElementById(
+    "form-input--githubUrl",
+  ) as HTMLInputElement | null;
+  if (!GithubUrlField) {
+    console.warn("CareerMatch: GithubUrl field not found on page");
+    return;
+  }
+  setReactInputValue(GithubUrlField, url);
+}
+function fillWellfoundTwitterUrl(url: string) {
+  const TwitterUrlField = document.getElementById(
+    "form-input--twitterUrl",
+  ) as HTMLInputElement | null;
+  if (!TwitterUrlField) {
+    console.warn("CareerMatch: TwitterUrl field not found on page");
+    return;
+  }
+  setReactInputValue(TwitterUrlField, url);
+}
 
-//   setReactInputValue(input, placeName);
-
-//   const options = await waitForElement('.styles_component__O6Mqu');
-//   console.log("location options => ", options);
-//   if (!options) {
-//     console.warn("CareerMatch: no suggestions appeared for", placeName);
-//     return false;
-//   }
-
-//   const match = Array.from(options).find((opt) =>
-//     opt
-//       .getAttribute("data-test")
-//       ?.toLowerCase()
-//       .includes(placeName.toLowerCase()),
-//   ) as HTMLElement | undefined;
-
-//   if (!match) {
-//     console.warn(`CareerMatch: no location match found for "${placeName}"`);
-//     return false;
-//   }
-
-//   match.click();
-//   return true;
-// }
 async function fillLocation(placeName: string) {
   const closeBtn = document.querySelector(".styles_close__oAq6U") as HTMLElement | null
   if (closeBtn) {
@@ -257,4 +256,8 @@ setTimeout(() => {
   fillWellfoundPrimaryRole("Data Scientist"); //done
   fillLocation("delhi"); //done
   fillWellfoundOpenToRole(["Mobile"]); //done
+  fillWellfoundBioWebsiteUrl("www.portfolio.com")
+  fillWellfoundLinkedinUrl("www.linkedin.com")
+  fillWellfoundGithubUrl("www.github.com/shivanshumangal007")
+  fillWellfoundTwitterUrl("www.twitter.com/shivanshum0007")
 }, 1000);

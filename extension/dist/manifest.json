@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/wellfound_fillers.ts-loader-ClkYG14y.js"
+        "assets/wellfound_fillers.ts-loader-BBHjkTTH.js"
       ],
       "matches": [
         "https://wellfound.com/profile/edit*"
@@ -29,7 +29,7 @@
       ],
       "resources": [
         "assets/rolldown-runtime-D9-fqq9M.js",
-        "assets/wellfound_fillers.ts-CLeV-rzg.js"
+        "assets/wellfound_fillers.ts-D8O571Lj.js"
       ],
       "use_dynamic_url": false
     }
