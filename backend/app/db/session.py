@@ -24,5 +24,9 @@ Base = declarative_base()
 # Async Dependency for FastAPI routes
 async def get_db():
     async with AsyncSessionLocal() as session:
-        yield session
-        await session.commit()
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

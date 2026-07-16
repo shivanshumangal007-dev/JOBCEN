@@ -1,5 +1,4 @@
 from jwt import decode, PyJWTError
-from email import generator
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,35 +6,37 @@ import secrets
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.db.crud.user import get_user_by_email, create_user
+from app.db.crud.user import get_user_by_email, create_user, delete_user
 from app.schemas.user import UserCreate, UserResponse, Token, UserAuthenticate, UserBase, VerifyOTP
 from app.services.auth_services import authenticate_user, get_current_user
 from app.core.security import create_access_token
 from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token
 from app.core.utils.email import send_verification_email
-
+from app.api.deps import RedisLimiter
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+auth_limiter = RedisLimiter(times=5, seconds=60, group="auth")
+otp_limiter = RedisLimiter(times=5, seconds=60,group="otp")
 
-@router.post("/signup", status_code=status.HTTP_201_CREATED)
+@router.post("/signup", status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_limiter)])
 async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    existing_user = await get_user_by_email(user.email, db)
-
     if user.email is None or user.username is None or user.password is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="All fields are required")
+
+    existing_user = await get_user_by_email(user.email, db)
 
     if existing_user:
         await send_verification_email(email=user.email)
         return {"otp_token":  create_otp_token(email=user.email, purpose="register")}
 
-    otp_data = await generate_and_send_otp(email=user.email, purpose="register")
     new_user = await create_user(user=user, db=db)
+    otp_data = await generate_and_send_otp(email=user.email, purpose="register")
     return {"otp_token": otp_data["otp_token"]}
 
 
 
-@router.post("/login-testing")
+@router.post("/login-testing", dependencies=[Depends(auth_limiter)])
 async def login_testing(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     user = await authenticate_user(form_data.username, form_data.password, db)
     if not user:
@@ -48,7 +49,7 @@ async def login_testing(form_data: OAuth2PasswordRequestForm = Depends(), db: As
     return await generate_and_send_otp(email=user.email, purpose="login")
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(auth_limiter)])
 async def login(form_data: UserAuthenticate, db: AsyncSession = Depends(get_db)):
     # Use username if provided, otherwise fallback to email
     identifier = form_data.username if form_data.username else form_data.email
@@ -64,7 +65,7 @@ async def login(form_data: UserAuthenticate, db: AsyncSession = Depends(get_db))
 
 
 
-@router.post("/verify-otp")
+@router.post("/verify-otp", dependencies=[Depends(otp_limiter)])
 async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depends(get_db)):
     try:
         payload = decode(request.otp_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -87,6 +88,13 @@ async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depe
     elif purpose == "login":
         if not user.is_active:
             user.is_active = True
+            await db.commit()
         access_token = create_access_token(user.id)
         return {"access_token": access_token, "token_type": "bearer"}
+        
+    elif purpose == "delete":
+        return await delete_user(user.id, db)
+        
+    else:
+        raise HTTPException(status_code=400, detail="Invalid OTP purpose.")
     

@@ -1,13 +1,12 @@
 from app.db.session import get_db
 from app.db.crud.user import get_user_by_email, create_user
-from app.schemas.user import UserCreate, UserResponse, Token, UserAuthenticate, UserBase
-from app.services.auth_services import authenticate_user, get_current_user
+from app.schemas.user import UserCreate
 from app.core.security import create_access_token
 
 import os
-import uuid
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request
+from app.api.deps import RedisLimiter
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from google.oauth2 import id_token
@@ -17,6 +16,7 @@ google_oauth = OAuth()
 
 router = APIRouter(prefix="/google-auth", tags=["google-authentication"])
 
+google_limiter = RedisLimiter(times=10, seconds=60, group="google_auth")
 
 
 google_oauth.register(
@@ -27,14 +27,15 @@ google_oauth.register(
     client_kwargs={"scope": "openid email profile"},
 )
 
-@router.get("/login/google", tags=["Google Authentication"])
+
+@router.get("/login/google", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
 async def google_login(request: Request):
     """Step A: Redirect user to Google sign-in."""
     redirect_uri = request.url_for("google_callback")
     return await google_oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get("/auth/google/callback", tags=["Google Authentication"])
+@router.get("/google/callback", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
 async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     """Step B: Handle Google payload, link account, issue JWT."""
     try:
@@ -48,16 +49,16 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     email = user_info.get("email")
     name = user_info.get("name")
 
-    user = await get_user_by_email(db, email)
+    user = await get_user_by_email(email=email, db=db)
 
     if not user:
         if not name:
             name = email.split("@")[0]
 
-        
-        user = await create_user(db=db, )
+        user_in = UserCreate(email=email, username=name, password=None)
+        user = await create_user(user=user_in, db=db)
 
-    access_token = create_access_token(subject={"sub": str(user.id)})
+    access_token = create_access_token(subject=user.id)
     deep_link = f"realitylens://auth-callback?token={access_token}&user_id={user.id}"
 
     # Serve an intermediary HTML page that attempts the deep link and provides
@@ -143,7 +144,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
 class GoogleTokenPayload(BaseModel):
     id_token: str
 
-@router.post("/auth/google", tags=["Google Authentication"])
+@router.post("/google", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
 async def verify_google_token(payload: GoogleTokenPayload, db: AsyncSession = Depends(get_db)):
     """Handle id_token sent directly from the frontend React app."""
     try:
@@ -188,7 +189,7 @@ async def verify_google_token(payload: GoogleTokenPayload, db: AsyncSession = De
             user = await create_user(user=user_in, db=db)
             
         # Generate our own JWT access token
-        access_token = create_access_token(subject={"sub": str(user.id)})
+        access_token = create_access_token(subject=user.id)
         return {"access_token": access_token, "token_type": "bearer", "user_id": str(user.id)}
         
     except ValueError:
