@@ -21,7 +21,7 @@ redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 OTP_EXPIRY_SECONDS = settings.OTP_EXPIRY_SECONDS
 
 
-async def authenticate_user(email_or_username: str, password: str, db: AsyncSession = Depends(get_db)):
+async def authenticate_user(email_or_username: str, password: str, db: AsyncSession):
     user_record = await get_user_by_email(email_or_username, db)
     
     if not user_record:

@@ -8,7 +8,7 @@ from app.core.security import get_password_hash
 from app.db.session import get_db
 import uuid
 
-async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+async def create_user(user: UserCreate, db: AsyncSession):
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email = user.email,
@@ -17,19 +17,19 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         is_active = False
     )
     db.add(db_user)
-    await db.flush()
+    await db.commit()
     
     return db_user
 
-async def get_user_by_email(email: str, db: AsyncSession = Depends(get_db)):
+async def get_user_by_email(email: str, db: AsyncSession):
     result = await db.execute(select(User).where(User.email==email))
     return result.scalars().first()
 
-async def get_user_by_id(user_id: str | uuid.UUID, db: AsyncSession = Depends(get_db)) -> User | None:
+async def get_user_by_id(user_id: str | uuid.UUID, db: AsyncSession) -> User | None:
     result = await db.execute(select(User).filter(User.id == user_id))
     return result.scalars().first()
 
-async def delete_user(user_id: str | uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def delete_user(user_id: str | uuid.UUID, db: AsyncSession):
     user = await get_user_by_id(user_id, db)
     if user:
         await db.delete(user)
