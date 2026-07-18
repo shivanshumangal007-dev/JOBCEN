@@ -12,6 +12,7 @@ from app.db.crud.job import create_job_record, get_job_by_id
 from app.tasks.parser_worker import parse_resume_task
 from app.api.deps import RedisLimiter
 from app.db.models.job import Job
+from app.services.pdf_extractor import extract_text_and_links_from_pdf
 
 router = APIRouter(tags=["Parser"])
 upload_limiter = RedisLimiter(times=2, seconds=60, group="upload")
@@ -62,6 +63,9 @@ async def upload_pdf_resume_data(
         job = await create_job_record(db, user_id=current_user.id)
 
         print(f"job created {job}")
+
+        result = extract_text_and_links_from_pdf(file)
+        print(f"result is {result}")
 
         pdf_bytes = await file.read()
         b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')

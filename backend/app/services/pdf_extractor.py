@@ -1,6 +1,6 @@
 import fitz
 
-def extract_text_and_links(file_path: str) -> dict:
+def extract_text_and_links_from_pdf(file_path: str) -> dict:
     text = ""
     links = []
 
