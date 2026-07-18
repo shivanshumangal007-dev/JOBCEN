@@ -69,6 +69,7 @@ async def generate_and_send_otp(email: str, purpose: str):
     return {"message": "Verification code dispatched successfully.", "otp_token": otp_token}
 
 
+
 async def verify_otp(email: str, purpose: str, otp: str, otp_token: str):
     try:
         payload = decode(otp_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

@@ -27,3 +27,4 @@ async def delete_profile(current_user: UserBase = Depends(get_current_user), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return await generate_and_send_otp(current_user.email, "delete")
+
