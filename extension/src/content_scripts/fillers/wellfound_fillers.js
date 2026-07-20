@@ -329,7 +329,8 @@ async function fillSchoolName(SchoolName) {
 }
 async function addWellfoundEducation(data) {
     const addNewExperienceButton = document.querySelector("a.styles_add__QCFDU");
-    if (!addNewExperienceButton || addNewExperienceButton.textContent?.toLowerCase() !== "+ add education") {
+    if (!addNewExperienceButton ||
+        addNewExperienceButton.textContent?.toLowerCase() !== "+ add education") {
         console.warn("CareerMatch: 'Add experience' button not found — skipping this entry");
         return;
     }
@@ -381,6 +382,45 @@ const sampleEducation = {
     CGPA: 8.5,
     maxGpa: 9,
 };
+const fillWellfoundSkills = async (skills) => {
+    let input;
+    for (const skill of skills) {
+        input = document.querySelector('[placeholder="e.g. Python, React"]');
+        if (!input) {
+            console.warn("CareerMatch: skills input field not found on page");
+            return;
+        }
+        input.focus();
+        await simulateTyping(input, skills[0]);
+        await new Promise((res) => setTimeout(res, 200));
+        const options = await waitForElement(".styles_component__O6Mqu");
+        console.log(options);
+        if (!options) {
+            console.log(`no options appered for ${skill}`);
+            const createButton = document.querySelector(".styles-module_component__88XzG.styles_button__YZJix.styles_component__sMuDw");
+            simulateFullClick(createButton);
+            return;
+        }
+        const exactMatch = Array.from(options).find((el) => el.getAttribute("data-test") == skill);
+        if (exactMatch) {
+            simulateFullClick(exactMatch);
+            console.log(`CareerMatch: selected existing skill "${skill}"`);
+        }
+        else {
+            const createButton = document.querySelector(".styles-module_component__88XzG.styles_button__YZJix.styles_component__sMuDw");
+            simulateFullClick(createButton);
+        }
+    }
+};
+const fillWellFoundAchivement = async (achivement) => {
+    const input = document.querySelector("#form-input--whatIveBuilt");
+    if (!input) {
+        console.warn("CareerMatch: skills input field not found on page");
+        return;
+    }
+    input.focus();
+    await simulateTyping(input, achivement);
+};
 async function runAllFillers() {
     // plain text fields — fast, but still sequential for predictable logging/debugging
     fillWellfoundBio("Full-stack engineer testing autofill from CareerMatch extension.");
@@ -401,6 +441,10 @@ async function runAllFillers() {
     await fillWelfoundWorkExperience([sampleWorkExperience]);
     await new Promise((res) => setTimeout(res, 300));
     await addWellfoundEducation(sampleEducation);
+    await new Promise((res) => setTimeout(res, 300));
+    await fillWellfoundSkills(["Django"]);
+    await new Promise((res) => setTimeout(res, 300));
+    await fillWellFoundAchivement("djangoproject");
 }
 setTimeout(() => {
     runAllFillers();

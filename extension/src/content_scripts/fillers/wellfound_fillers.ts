@@ -329,7 +329,9 @@ async function fillWelfoundWorkExperience(data: WorkExperience[]) {
       "a.styles_add__EROyj",
     ) as HTMLElement | null;
     if (!addNewExperience) {
-      console.warn("CareerMatch: 'Add experience' button not found — skipping this entry");
+      console.warn(
+        "CareerMatch: 'Add experience' button not found — skipping this entry",
+      );
       continue;
     }
     addNewExperience.click();
@@ -414,21 +416,20 @@ const sampleWorkExperience: WorkExperience = {
 };
 
 type EducationData = {
-  SchoolName : string;
-  degree : string;
-  fieldOfStudy : string;
+  SchoolName: string;
+  degree: string;
+  fieldOfStudy: string;
   graduationYear: string;
   CGPA: number;
   maxGpa: number;
-  
-}
+};
 async function fillSchoolName(SchoolName: string) {
   const input = document.querySelector(
     "#downshift-3-input",
   ) as HTMLInputElement | null;
 
   if (!input) {
-    console.warn("CareerMatch: School name field not found"); 
+    console.warn("CareerMatch: School name field not found");
     return false;
   }
 
@@ -437,9 +438,12 @@ async function fillSchoolName(SchoolName: string) {
 
   const results = await waitForElement(
     "#downshift-5-menu .styles_component__O6Mqu",
-  ); 
+  );
   if (!results) {
-    console.warn("CareerMatch: no School name results appeared for", SchoolName);
+    console.warn(
+      "CareerMatch: no School name results appeared for",
+      SchoolName,
+    );
     // case 1
     const createButton = document.querySelector(
       ".styles_menu__POsOr button.styles-module_component__88XzG",
@@ -452,10 +456,10 @@ async function fillSchoolName(SchoolName: string) {
       return false;
     }
   }
-  console.log(results)
+  console.log(results);
   // Case 2: try to find an exact (or close) match among real results
-  const exactMatch = Array.from(results).find((el) =>
-    el.getAttribute("data-test") == SchoolName
+  const exactMatch = Array.from(results).find(
+    (el) => el.getAttribute("data-test") == SchoolName,
   ) as HTMLElement | undefined;
 
   if (exactMatch) {
@@ -464,86 +468,143 @@ async function fillSchoolName(SchoolName: string) {
     return true;
   }
 
-
   console.warn(
     `CareerMatch: neither match nor create button found for "${SchoolName}"`,
   );
   return false;
 }
-async function addWellfoundEducation(data : EducationData){
-
+async function addWellfoundEducation(data: EducationData) {
   const addNewExperienceButton = document.querySelector(
-      "a.styles_add__QCFDU",
-    ) as HTMLElement | null;
-    if (!addNewExperienceButton || addNewExperienceButton.textContent?.toLowerCase() !== "+ add education") {
-      console.warn("CareerMatch: 'Add experience' button not found — skipping this entry");
-      return;
-    }
-    addNewExperienceButton.click();
-    await new Promise((res) => setTimeout(res, 300)); 
-    
-    await fillSchoolName(data.SchoolName);
-    await new Promise((res) => setTimeout(res, 300)); 
-
-    //graduation year and month
-    let field = document.querySelector(
-      '[for="form-input--graduationDate"] input',
-    ) as HTMLInputElement | null;
-    if (!field) {
-      console.warn("CareerMatch: graduationDate field not found on page");
-      return;
-    }
-    field.focus();
-    await simulateTyping(field, data.graduationYear);
-
-    field.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    "a.styles_add__QCFDU",
+  ) as HTMLElement | null;
+  if (
+    !addNewExperienceButton ||
+    addNewExperienceButton.textContent?.toLowerCase() !== "+ add education"
+  ) {
+    console.warn(
+      "CareerMatch: 'Add experience' button not found — skipping this entry",
     );
-    field.dispatchEvent(
-      new KeyboardEvent("keyup", { key: "Enter", bubbles: true }),
-    );
+    return;
+  }
+  addNewExperienceButton.click();
+  await new Promise((res) => setTimeout(res, 300));
 
-    await new Promise((res) => setTimeout(res, 200));
+  await fillSchoolName(data.SchoolName);
+  await new Promise((res) => setTimeout(res, 300));
 
-    let committedValue = field.value;
-    console.log(`CareerMatch: startedAt field now shows "${committedValue}"`);
+  //graduation year and month
+  let field = document.querySelector(
+    '[for="form-input--graduationDate"] input',
+  ) as HTMLInputElement | null;
+  if (!field) {
+    console.warn("CareerMatch: graduationDate field not found on page");
+    return;
+  }
+  field.focus();
+  await simulateTyping(field, data.graduationYear);
 
-    // degree
+  field.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+  );
+  field.dispatchEvent(
+    new KeyboardEvent("keyup", { key: "Enter", bubbles: true }),
+  );
 
-    //field of study
-    field = document.getElementById("form-input--majors[0]") as HTMLInputElement | null;
-    if(!field){
-      console.warn("CareerMatch: field of study field not found on page");
-      return;
-    }
-    setReactInputValue(field, data.fieldOfStudy);
+  await new Promise((res) => setTimeout(res, 200));
 
-    //cgpa
-    field = document.querySelector("#form-input--gpa") as HTMLInputElement | null;
-    if(!field){
-      console.warn("CareerMatch: cgpa field not found on page");
-      return;
-    }
-    setReactInputValue(field, data.CGPA.toString());
+  let committedValue = field.value;
+  console.log(`CareerMatch: startedAt field now shows "${committedValue}"`);
 
-    //max cgpa
-    field = document.querySelector("#form-input--maxGpa") as HTMLInputElement | null;
-    if(!field){
-      console.warn("CareerMatch: max cgpa field not found on page");
-      return;
-    }
-    setReactInputValue(field, data.maxGpa.toString());
-    
+  // degree
+
+  //field of study
+  field = document.getElementById(
+    "form-input--majors[0]",
+  ) as HTMLInputElement | null;
+  if (!field) {
+    console.warn("CareerMatch: field of study field not found on page");
+    return;
+  }
+  setReactInputValue(field, data.fieldOfStudy);
+
+  //cgpa
+  field = document.querySelector("#form-input--gpa") as HTMLInputElement | null;
+  if (!field) {
+    console.warn("CareerMatch: cgpa field not found on page");
+    return;
+  }
+  setReactInputValue(field, data.CGPA.toString());
+
+  //max cgpa
+  field = document.querySelector(
+    "#form-input--maxGpa",
+  ) as HTMLInputElement | null;
+  if (!field) {
+    console.warn("CareerMatch: max cgpa field not found on page");
+    return;
+  }
+  setReactInputValue(field, data.maxGpa.toString());
 }
 
-const sampleEducation : EducationData = {
-  SchoolName : "Indian Institute of Information Technology, Allahabad",
-  degree : "Bachelor of Technology",
-  fieldOfStudy : "Computer Science and Engineering",
+const sampleEducation: EducationData = {
+  SchoolName: "Indian Institute of Information Technology, Allahabad",
+  degree: "Bachelor of Technology",
+  fieldOfStudy: "Computer Science and Engineering",
   graduationYear: "July 2026",
   CGPA: 8.5,
   maxGpa: 9,
-}
+};
+
+const fillWellfoundSkills = async (skills: string[]) => {
+  let input: HTMLInputElement | null;
+  for (const skill of skills) {
+    input = document.querySelector(
+      '[placeholder="e.g. Python, React"]',
+    ) as HTMLInputElement | null;
+    if (!input) {
+      console.warn("CareerMatch: skills input field not found on page");
+      return;
+    }
+    input.focus();
+    await simulateTyping(input, skills[0]);
+    await new Promise((res) => setTimeout(res, 200));
+    const options = await waitForElement(".styles_component__O6Mqu");
+    console.log(options);
+    if (!options) {
+      console.log(`no options appered for ${skill}`);
+      const createButton = document.querySelector(
+        ".styles-module_component__88XzG.styles_button__YZJix.styles_component__sMuDw",
+      ) as HTMLButtonElement;
+      simulateFullClick(createButton);
+      return;
+    }
+    const exactMatch = Array.from(options).find(
+      (el) => el.getAttribute("data-test") == skill,
+    ) as HTMLElement | undefined;
+
+    if (exactMatch) {
+      simulateFullClick(exactMatch);
+      console.log(`CareerMatch: selected existing skill "${skill}"`);
+    } else {
+      const createButton = document.querySelector(
+        ".styles-module_component__88XzG.styles_button__YZJix.styles_component__sMuDw",
+      ) as HTMLButtonElement;
+      simulateFullClick(createButton);
+    }
+  }
+};
+
+const fillWellFoundAchivement = async (achivement: string) => {
+  const input = document.querySelector(
+    "#form-input--whatIveBuilt",
+  ) as HTMLInputElement;
+  if (!input) {
+    console.warn("CareerMatch: skills input field not found on page");
+    return;
+  }
+  input.focus();
+  await simulateTyping(input, achivement)
+};
 async function runAllFillers() {
   // plain text fields — fast, but still sequential for predictable logging/debugging
   fillWellfoundBio(
@@ -571,6 +632,11 @@ async function runAllFillers() {
   await new Promise((res) => setTimeout(res, 300));
 
   await addWellfoundEducation(sampleEducation);
+  await new Promise((res) => setTimeout(res, 300));
+  
+  await fillWellfoundSkills(["Django"]);
+  await new Promise((res) => setTimeout(res, 300));
+  await fillWellFoundAchivement("djangoproject")
 }
 
 setTimeout(() => {
