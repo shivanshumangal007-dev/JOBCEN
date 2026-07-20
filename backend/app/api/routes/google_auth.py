@@ -14,7 +14,7 @@ from google.auth.transport import requests as google_requests
 
 google_oauth = OAuth()
 
-router = APIRouter(prefix="/google-auth", tags=["google-authentication"])
+router = APIRouter(prefix="/google-auth", tags=["Google Authentication"])
 
 google_limiter = RedisLimiter(times=10, seconds=60, group="google_auth")
 
@@ -28,14 +28,14 @@ google_oauth.register(
 )
 
 
-@router.get("/login/google", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
+@router.get("/login/google", dependencies=[Depends(google_limiter)])
 async def google_login(request: Request):
     """Step A: Redirect user to Google sign-in."""
     redirect_uri = request.url_for("google_callback")
     return await google_oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get("/google/callback", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
+@router.get("/google/callback", dependencies=[Depends(google_limiter)])
 async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     """Step B: Handle Google payload, link account, issue JWT."""
     try:
@@ -144,7 +144,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
 class GoogleTokenPayload(BaseModel):
     id_token: str
 
-@router.post("/google", tags=["Google Authentication"], dependencies=[Depends(google_limiter)])
+@router.post("/google", dependencies=[Depends(google_limiter)])
 async def verify_google_token(payload: GoogleTokenPayload, db: AsyncSession = Depends(get_db)):
     """Handle id_token sent directly from the frontend React app."""
     try:

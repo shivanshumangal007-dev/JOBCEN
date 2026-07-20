@@ -38,5 +38,12 @@ async def delete_user(user_id: str | uuid.UUID, db: AsyncSession):
     else:
         raise HTTPException(status_code=404, detail="User not found")
     
-
+async def add_user_resume(file_path: str, user_id: str, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
+    if user:
+        user.resume = file_path
+        await db.commit()
+        return {"message": "User resume added successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
 

@@ -16,10 +16,15 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-
     
+    GEMINI_API_KEY: str = ""
+
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+    CLOUDINARY_CLOUD_NAME: str = ""
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
