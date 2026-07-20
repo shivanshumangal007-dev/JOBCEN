@@ -1,0 +1,65 @@
+import { setReactInputValue, waitForElement, simulateTyping, simulateFullClick } from './utils';
+
+export function fillWellfoundBio(bioText: string) {
+  const bioField = document.getElementById(
+    "form-input--bio",
+  ) as HTMLTextAreaElement | null;
+  if (!bioField) {
+    console.warn("CareerMatch: bio field not found on page");
+    return;
+  }
+  setReactInputValue(bioField, bioText);
+}
+
+export function fillWellfoundName(fullName: string) {
+  const nameField = document.getElementById(
+    "form-input--name",
+  ) as HTMLInputElement | null;
+  if (!nameField) {
+    console.warn("CareerMatch: name field not found on page");
+    return;
+  }
+  setReactInputValue(nameField, fullName);
+}
+
+export async function fillLocation(placeName: string) {
+  const closeBtn = document.querySelector(
+    ".styles_close__oAq6U",
+  ) as HTMLElement | null;
+  if (closeBtn) {
+    closeBtn.click();
+    await waitForElement('[data-test="Downshift--input"]');
+  }
+
+  const input = document.querySelector(
+    '[data-test="Downshift--input"]',
+  ) as HTMLInputElement | null;
+  if (!input) {
+    console.warn("CareerMatch: location input not found");
+    return false;
+  }
+
+  input.focus(); // some widgets only trigger search logic on a focused field
+  await simulateTyping(input, placeName);
+
+  const options = await waitForElement('[role="option"]');
+  if (!options) {
+    console.warn("CareerMatch: no suggestions appeared for", placeName);
+    return false;
+  }
+
+  const target = Array.from(options).find((opt) =>
+    opt
+      .getAttribute("data-test")
+      ?.toLowerCase()
+      .includes(placeName.toLowerCase()),
+  ) as HTMLElement | undefined;
+
+  if (!target) {
+    console.warn(`CareerMatch: no location match found for "${placeName}"`);
+    return false;
+  }
+
+  simulateFullClick(target);
+  return true;
+}
