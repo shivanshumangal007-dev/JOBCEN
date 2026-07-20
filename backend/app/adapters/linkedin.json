@@ -1,0 +1,32 @@
+{
+  "platform": "linkedin",
+  "version": "1.0",
+  "description": "Mock schema for LinkedIn Easy Apply job applications.",
+  "fields": {
+    "first_name": {
+      "type": "string",
+      "selector": "input[name='firstName']",
+      "required": true
+    },
+    "last_name": {
+      "type": "string",
+      "selector": "input[name='lastName']",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "selector": "input[name='email']",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "selector": "input[name='phone']",
+      "required": false
+    },
+    "city": {
+      "type": "string",
+      "selector": "input[name='city']",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "platform": "internshala",
+  "version": "1.0",
+  "description": "Mock schema for Internshala job applications.",
+  "fields": {
+    "first_name": {
+      "type": "string",
+      "selector": "#first_name",
+      "required": true
+    },
+    "last_name": {
+      "type": "string",
+      "selector": "#last_name",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "selector": "#email",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "selector": "#phone",
+      "required": true
+    },
+    "cover_letter": {
+      "type": "text",
+      "selector": "#cover_letter_text",
+      "required": false
+    }
+  }
+}

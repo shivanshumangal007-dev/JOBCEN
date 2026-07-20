@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.models.profile import Profile
@@ -18,3 +19,21 @@ async def save_universal_profile(db: AsyncSession, user_id: str, structured_prof
 
     await db.commit()
     return existing_profile or new_profile
+
+
+async def get_current_user_profile(user_id: str, db: AsyncSession):
+
+    try:
+        result = await db.execute(select(Profile).filter(Profile.user_id == user_id))
+        profile = result.scalars().first()
+
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        return profile.data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    

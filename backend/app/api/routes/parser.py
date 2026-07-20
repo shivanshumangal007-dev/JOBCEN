@@ -1,6 +1,5 @@
 from fastapi import UploadFile
-from asyncio import taskgroups
-import uuid
+import base64
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,10 +8,8 @@ from app.services.auth_services import get_current_user
 from app.db.models.user import User
 from app.schemas.parser import ResumeUploadPayload
 from app.db.crud.job import create_job_record, get_job_by_id
-from app.tasks.parser_worker import parse_resume_task
+from app.tasks.parser_worker import parse_resume_task, upload_to_cloudinary_task
 from app.api.deps import RedisLimiter
-from app.db.models.job import Job
-from app.services.pdf_extractor import extract_text_and_links_from_pdf
 
 router = APIRouter(tags=["Parser"])
 upload_limiter = RedisLimiter(times=2, seconds=60, group="upload")
@@ -25,7 +22,7 @@ async def upload_resume_data(
 ):
     job = await create_job_record(db, user_id=current_user.id)
 
-    parse_resume_task.delay(job.id, current_user.id, payload.raw_text)
+    parse_resume_task.delay(str(job.id), str(current_user.id), payload.raw_text)
 
     return {
         "job_id": job.id,
@@ -39,7 +36,7 @@ async def get_status(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    job = await get_job_by_id(job_id=job_id, user_id=current_user.id,db=db)
+    job = await get_job_by_id(job_id=job_id, user_id=current_user.id, db=db)
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -59,18 +56,14 @@ async def upload_pdf_resume_data(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        import base64
         job = await create_job_record(db, user_id=current_user.id)
-
-        print(f"job created {job}")
-
-        result = extract_text_and_links_from_pdf(file)
-        print(f"result is {result}")
 
         pdf_bytes = await file.read()
         b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
 
-        parse_resume_task.delay(job.id, current_user.id, b64_pdf, True)
+        # Dispatch both tasks concurrently via Celery
+        parse_resume_task.delay(str(job.id), str(current_user.id), b64_pdf, True)
+        upload_to_cloudinary_task.delay(str(current_user.id), b64_pdf)
 
         return {
             "job_id": job.id,
@@ -81,4 +74,4 @@ async def upload_pdf_resume_data(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload resume: {str(e)}"
-        ) 
+        )

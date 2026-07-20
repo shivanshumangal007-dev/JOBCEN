@@ -1,0 +1,27 @@
+{
+  "platform": "wellfound",
+  "version": "1.0",
+  "description": "Mock schema for Wellfound job applications.",
+  "fields": {
+    "first_name": {
+      "type": "string",
+      "selector": "input[name='user[first_name]']",
+      "required": true
+    },
+    "last_name": {
+      "type": "string",
+      "selector": "input[name='user[last_name]']",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "selector": "input[name='user[email]']",
+      "required": true
+    },
+    "note_to_founder": {
+      "type": "text",
+      "selector": "textarea[name='note']",
+      "required": false
+    }
+  }
+}

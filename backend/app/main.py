@@ -9,7 +9,10 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.google_auth import router as google_auth_router
 from app.api.routes.parser import router as parser_router
+from app.api.routes.adapters import router as adapter_router
 import app.db.models.user  # Import models to ensure they are registered with Base
+import app.db.models.profile  # noqa: F401
+import app.db.models.platform_sync_status  # noqa: F401
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -42,3 +45,4 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(google_auth_router)
 app.include_router(parser_router)
+app.include_router(adapter_router)

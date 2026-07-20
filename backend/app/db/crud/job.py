@@ -13,7 +13,7 @@ async def update_job_status(job_id: str, status: str, db: AsyncSession, error: s
         job.status = JobStatus(status)
         if error:
             job.error_message = error
-        await db.flush()
+        await db.commit()
     else:
         raise HTTPException(status_code=404, detail="Job not found")
     return job

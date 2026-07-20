@@ -1,10 +1,10 @@
 import fitz
 
-def extract_text_and_links_from_pdf(file_path: str) -> dict:
+def extract_text_and_links_from_pdf(file_bytes: bytes) -> dict:
     text = ""
     links = []
 
-    with fitz.open(file_path) as doc:
+    with fitz.open(stream=file_bytes, filetype="pdf") as doc:
         for page_num, page in enumerate(doc):
             text += page.get_text("text") + "\n"
 

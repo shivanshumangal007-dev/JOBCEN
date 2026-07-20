@@ -1,0 +1,17 @@
+{
+  "platform": "template_name",
+  "version": "1.0",
+  "description": "A template for creating new platform adapters.",
+  "fields": {
+    "field_name_1": {
+      "type": "string|text|file|number|date|boolean",
+      "selector": "css_selector_for_the_field",
+      "required": true
+    },
+    "field_name_2": {
+      "type": "string",
+      "selector": "another_css_selector",
+      "required": false
+    }
+  }
+}
