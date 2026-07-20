@@ -10,9 +10,9 @@ from app.core.security import verify_password
 from app.db.session import get_db
 from app.core.config import settings
 from app.db.crud.user import get_user_by_email, get_user_by_id
-from app.schemas.user import TokenData, UserAuthenticate
+from app.schemas.user import TokenData
 from app.core.utils.email import send_email_otp
-from app.core.security import create_access_token, create_otp_token
+from app.core.security import create_otp_token
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login-testing")
