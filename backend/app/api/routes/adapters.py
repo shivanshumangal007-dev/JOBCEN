@@ -25,10 +25,7 @@ async def get_all_filling_plans(
     db: AsyncSession = Depends(get_db),
     _limiter=Depends(adapter_limiter),
 ):
-    """
-    Get filling plans for ALL platforms at once.
-    Returns: { link: { "name": "value" }, link2: { ... }, ... }
-    """
+
     profile_data = await ProfileService.get_user_profile(current_user.id, db)
     return SyncService.generate_all_filling_plans(profile_data, current_user.email)
 
@@ -40,9 +37,6 @@ async def get_filling_plan(
     db: AsyncSession = Depends(get_db),
     _limiter=Depends(adapter_limiter),
 ):
-    """
-    Get filling plan for a single platform.
-    Returns: { link: { "name": "value", ... } }
-    """
+
     profile_data = await ProfileService.get_user_profile(current_user.id, db)
     return SyncService.generate_filling_plan(profile_data, platform, current_user.email)

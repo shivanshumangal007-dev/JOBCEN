@@ -12,6 +12,9 @@ celery_app = Celery(
 celery_app.conf.update(
     broker_use_ssl={'ssl_cert_reqs': ssl.CERT_REQUIRED},
     redis_backend_use_ssl={'ssl_cert_reqs': ssl.CERT_REQUIRED},
+    broker_connection_retry_on_startup=True,
+    broker_pool_limit=None, # Helps with serverless redis like Upstash
+    redis_max_connections=20,
     task_track_started=True,
     task_serializer="json",
     accept_content=["json"],

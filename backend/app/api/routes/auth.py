@@ -1,5 +1,5 @@
 from jwt import decode, PyJWTError
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 import secrets
@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.db.crud.user import get_user_by_email, create_user, delete_user
 from app.schemas.user import UserCreate, UserResponse, Token, UserAuthenticate, UserBase, VerifyOTP
 from app.services.auth_services import authenticate_user, get_current_user
-from app.core.security import create_access_token
+from app.core.security import create_access_token, create_refresh_token
 from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token
 from app.core.utils.email import send_verification_email
 from app.api.deps import RedisLimiter
@@ -30,7 +30,7 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
         await send_verification_email(email=user.email)
         return {"otp_token":  create_otp_token(email=user.email, purpose="register")}
 
-    new_user = await create_user(user=user, db=db)
+    await create_user(user=user, db=db)
     otp_data = await generate_and_send_otp(email=user.email, purpose="register")
     return {"otp_token": otp_data["otp_token"]}
 
@@ -51,7 +51,7 @@ async def login_testing(form_data: OAuth2PasswordRequestForm = Depends(), db: As
 
 @router.post("/login", dependencies=[Depends(auth_limiter)])
 async def login(form_data: UserAuthenticate, db: AsyncSession = Depends(get_db)):
-    # Use username if provided, otherwise fallback to email
+   
     identifier = form_data.username if form_data.username else form_data.email
     user = await authenticate_user(identifier, form_data.password, db)
     if not user:
@@ -66,7 +66,7 @@ async def login(form_data: UserAuthenticate, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/verify-otp", dependencies=[Depends(otp_limiter)])
-async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depends(get_db)):
+async def verify_otp_entered_by_user(response: Response,request: VerifyOTP, db: AsyncSession = Depends(get_db)):
     try:
         payload = decode(request.otp_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email = payload.get("email")
@@ -83,6 +83,15 @@ async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depe
         user.is_active = True
         await db.commit()
         access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+            secure=True,         # Requires HTTPS in production
+            samesite="lax",      # CSRF protection
+            max_age=7 * 24 * 3600 # 7 days in seconds
+        )
         return {"access_token": access_token, "token_type": "bearer"}
         
     elif purpose == "login":
@@ -90,6 +99,15 @@ async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depe
             user.is_active = True
             await db.commit()
         access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+            secure=True,         # Requires HTTPS in production
+            samesite="lax",      # CSRF protection
+            max_age=7 * 24 * 3600 # 7 days in seconds
+        )
         return {"access_token": access_token, "token_type": "bearer"}
         
     elif purpose == "delete":
@@ -98,3 +116,32 @@ async def verify_otp_entered_by_user(request: VerifyOTP, db: AsyncSession = Depe
     else:
         raise HTTPException(status_code=400, detail="Invalid OTP purpose.")
     
+@router.post("/refresh")
+async def refresh_access_token(request: Request, refresh_token: str | None = Cookie(default=None)):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
+    try:
+        payload = decode(refresh_token, settings.REFRESH_SECRET_KEY, algorithms=[settings.ALGORITHM])
+        
+        # Verify token type
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+            
+        user_id = payload.get("sub")
+        
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    # Issue a new short-lived access token
+    new_access_token = create_access_token(subject=user_id)
+
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}

@@ -12,7 +12,8 @@ class SyncService:
     @classmethod
     def generate_filling_plan(cls, profile_data: dict, platform: str, user_email: str) -> dict:
         """
-        Generate a simple { link: { "name": "value", ... } } payload for a single platform.
+        Generate the filling plan for a specific platform.
+        Returns: { link1: { "name": "value", ... }, link2: { ... } }
         """
         target_platform = platform.lower().strip()
         adapter = ADAPTERS_CONFIG.get(target_platform)
@@ -24,26 +25,29 @@ class SyncService:
             )
 
         try:
-            data = adapter["transformer"](profile_data, user_email)
+            # The transformer now directly returns the { link: { data } } dictionary
+            return adapter["transformer"](profile_data, user_email)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Failed to transform profile for {platform}: {str(e)}"
             )
 
-        return {adapter["link"]: data}
-
     @classmethod
     def generate_all_filling_plans(cls, profile_data: dict, user_email: str) -> dict:
         """
-        Generate { link: { "name": "value" }, link2: { ... }, ... } for ALL platforms at once.
+        Generate filling plans for ALL platforms at once.
+        Returns: { 
+           "linkedin": { link: { ... } }, 
+           "wellfound": { link1: { ... }, link2: { ... } } 
+        }
         """
         result = {}
         for platform_name, adapter in ADAPTERS_CONFIG.items():
             try:
                 data = adapter["transformer"](profile_data, user_email)
-                result[adapter["link"]] = data
+                result[platform_name] = data
             except Exception:
-                # Skip platforms that fail transformation, don't break the whole response
+                # Skip platforms that fail transformation
                 continue
         return result
