@@ -74,7 +74,6 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
         purpose = payload.get("purpose")
         remember_me = payload.get("remember_me")
 
-        print(remember_me)
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP token.")
         
