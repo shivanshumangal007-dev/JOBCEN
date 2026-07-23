@@ -20,6 +20,7 @@ redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
 OTP_EXPIRY_SECONDS = settings.OTP_EXPIRY_SECONDS
 
+environment = settings.ENVIRONMENT
 
 async def authenticate_user(email_or_username: str, password: str, db: AsyncSession):
     user_record = await get_user_by_email(email_or_username, db)
@@ -57,6 +58,11 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
 
 async def generate_and_send_otp(email: str, purpose: str):
     otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+
+    print(environment)
+    if environment == "development":
+        otp_code = "123456"
+    
     otp_hash = get_password_hash(otp_code)
     otp_token = create_otp_token(email=email, purpose=purpose)
 
@@ -64,7 +70,8 @@ async def generate_and_send_otp(email: str, purpose: str):
 
     await redis_client.setex(redis_key, OTP_EXPIRY_SECONDS, otp_hash)
 
-    await send_email_otp(email=email, otp=otp_code, purpose=purpose)
+    if environment != "development":
+        await send_email_otp(email=email, otp=otp_code, purpose=purpose)
 
     return {"message": "Verification code dispatched successfully.", "otp_token": otp_token}
 

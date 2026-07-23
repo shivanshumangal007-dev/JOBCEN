@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 import secrets
+import os
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -18,6 +19,8 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 auth_limiter = RedisLimiter(times=5, seconds=60, group="auth")
 otp_limiter = RedisLimiter(times=5, seconds=60,group="otp")
+
+environment = os.getenv("ENVIRONMENT")
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_limiter)])
 async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -117,7 +120,11 @@ async def verify_otp_entered_by_user(response: Response,request: VerifyOTP, db: 
         raise HTTPException(status_code=400, detail="Invalid OTP purpose.")
     
 @router.post("/refresh")
-async def refresh_access_token(request: Request, refresh_token: str | None = Cookie(default=None)):
+async def refresh_access_token(request: Request):
+
+
+    refresh_token = request.cookies.get("refresh_token")
+
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token missing")
 
