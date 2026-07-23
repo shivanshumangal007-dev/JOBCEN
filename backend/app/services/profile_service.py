@@ -1,8 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.crud.profile import get_current_user_profile, save_universal_profile
-from app.schemas.profile import UniversalProfileSchema
+from app.db.crud.profile import get_current_user_profile
 
 
 class ProfileService:

@@ -2,11 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.db.crud.user import delete_user
 from app.schemas.user import UserBase
 from app.services.auth_services import get_current_user
 from app.services.auth_services import generate_and_send_otp
-from app.api.deps import RedisLimiter
 from app.api.routes.auth import auth_limiter
 
 

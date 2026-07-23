@@ -1,17 +1,15 @@
 from app.core.security import get_password_hash
-from sqlalchemy import Boolean
 from jwt import decode, PyJWTError
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-import secrets
 import os
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.db.crud.user import get_user_by_email, create_user, delete_user
-from app.schemas.user import UserCreate, UserResponse, Token, UserAuthenticate, UserBase, VerifyOTP, UserForgotPassword
-from app.services.auth_services import authenticate_user, get_current_user
+from app.schemas.user import UserCreate, UserAuthenticate, VerifyOTP, UserForgotPassword
+from app.services.auth_services import authenticate_user
 from app.core.security import create_access_token, create_refresh_token
 from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token, generate_and_send_opt_forget_password
 from app.core.utils.email import send_verification_email
@@ -91,7 +89,7 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
-        if remember_me == True:
+        if remember_me:
             response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,
@@ -109,7 +107,7 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
             await db.commit()
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
-        if remember_me == True:
+        if remember_me:
             response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,

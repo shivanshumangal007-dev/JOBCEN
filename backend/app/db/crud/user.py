@@ -1,11 +1,10 @@
 from fastapi import HTTPException
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_
 from app.db.models.user import User
 from app.schemas.user import UserCreate
 from app.core.security import get_password_hash
-from app.db.session import get_db
 import uuid
 
 async def create_user(user: UserCreate, db: AsyncSession):
@@ -23,6 +22,14 @@ async def create_user(user: UserCreate, db: AsyncSession):
 
 async def get_user_by_email(email: str, db: AsyncSession):
     result = await db.execute(select(User).where(User.email==email))
+    return result.scalars().first()
+
+async def get_user_by_email_or_username(email_or_username: str, db: AsyncSession):
+    result = await db.execute(
+        select(User).where(
+            or_(User.email == email_or_username, User.username == email_or_username)
+        )
+    )
     return result.scalars().first()
 
 async def get_user_by_id(user_id: str | uuid.UUID, db: AsyncSession) -> User | None:

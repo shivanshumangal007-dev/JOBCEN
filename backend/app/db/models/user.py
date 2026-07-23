@@ -1,10 +1,9 @@
-from sqlalchemy import false
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import String, DateTime
 from sqlalchemy.sql import func
 # Assuming a standard declarative base setup in db/session.py
 from app.db.session import Base
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, JSON, UUID
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import UUID
 import uuid
 import datetime
 

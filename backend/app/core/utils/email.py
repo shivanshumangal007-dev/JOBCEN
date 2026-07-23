@@ -58,8 +58,8 @@ async def send_verification_email(email: str):
     payload = {
         "sender": {"name": settings.BREVO_SENDER_NAME, "email": settings.BREVO_SENDER_EMAIL},
         "to": [{"email": email}],
-        "subject": f"Activity Verification",
-        "htmlContent": f"""
+        "subject": "Activity Verification",
+        "htmlContent": """
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h3>Activity on your JOBCEN Account</h3>
                 <p>We received a request to sign up for a JOBCEN account using this email address.</p>

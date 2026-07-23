@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 from app.db.session import Base
 from datetime import datetime
 import uuid
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, JSON, UUID
 
 class Profile(Base):
     __tablename__ = "profiles"

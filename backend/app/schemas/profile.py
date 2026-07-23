@@ -1,6 +1,5 @@
-from pydantic import BaseModel, EmailStr, HttpUrl
+from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date
 
 class ContactInfo(BaseModel):
     phone_number: Optional[str] = None

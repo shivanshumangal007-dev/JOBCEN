@@ -1,5 +1,4 @@
-import fastapi
-from fastapi import FastAPI, middleware
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio
 import logging

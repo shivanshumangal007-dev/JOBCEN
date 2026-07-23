@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
-from jwt import encode, decode, PyJWTError
+from jwt import encode
 from passlib.context import CryptContext
 from app.core.config import settings
 import hashlib

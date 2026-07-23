@@ -9,7 +9,7 @@ import secrets
 from app.core.security import verify_password
 from app.db.session import get_db
 from app.core.config import settings
-from app.db.crud.user import get_user_by_email, get_user_by_id
+from app.db.crud.user import get_user_by_id, get_user_by_email_or_username
 from app.schemas.user import TokenData
 from app.core.utils.email import send_email_otp, send_forgot_password_email
 from app.core.security import create_otp_token
@@ -23,7 +23,7 @@ OTP_EXPIRY_SECONDS = settings.OTP_EXPIRY_SECONDS
 environment = settings.ENVIRONMENT
 
 async def authenticate_user(email_or_username: str, password: str, db: AsyncSession):
-    user_record = await get_user_by_email(email_or_username, db)
+    user_record = await get_user_by_email_or_username(email_or_username, db)
     
     if not user_record:
         return False
