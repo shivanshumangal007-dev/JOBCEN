@@ -60,6 +60,8 @@ class RedisLimiter:
 
         count = results[2]           # zcard result (index 2 after zremrangebyscore, zadd)
         if count > self.times:
+            # Revert the addition of this request since it was rate limited
+            await redis_client.zrem(key, member)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many requests. Please try again later.",
