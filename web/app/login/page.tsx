@@ -1,25 +1,56 @@
+"use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { LoginData, useLoginUser } from "@/hooks/auth";
 
 export default function LoginPage() {
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<any | null>(null);
+  const loginUserHook = useLoginUser();
+
+  const submitHandler = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data: LoginData = {
+      username: identifier.includes("@") ? undefined : identifier,
+      email: identifier.includes("@") ? identifier : undefined,
+      password,
+    };
+    try {
+      await loginUserHook.mutateAsync(data);
+      sessionStorage.setItem("verification_email", identifier);
+      setError(null);
+    } catch (err) {
+      setError(err);
+    }
+  };
+
   return (
     <section className="flex min-h-screen w-full items-center justify-center py-4 lg:py-20">
       <div className="w-full max-w-sm space-y-6">
         <h2 className="mt-6 font-bold text-3xl">Sign in to your account</h2>
-        <form action="#" className="space-y-6">
+        {error && (
+          <div className="text-red-500">
+            {error?.response?.data?.detail || error?.message}
+          </div>
+        )}
+        <form onSubmit={submitHandler} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">Email address or Username</Label>
             <Input
               id="email"
               name="email"
-              type="email"
+              type="text"
               autoComplete="email"
               required
               className="mt-1"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -31,6 +62,8 @@ export default function LoginPage() {
               autoComplete="current-password"
               required
               className="mt-1"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
@@ -51,8 +84,12 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <Button type="submit" className="w-full">
-              Signin
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={loginUserHook.isPending}
+            >
+              {loginUserHook.isPending ? "Signing in..." : "Sign in"}
             </Button>
           </div>
         </form>
@@ -68,7 +105,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
 
             <Button variant="outline">
               <svg

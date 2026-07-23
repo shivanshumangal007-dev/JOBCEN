@@ -57,4 +57,30 @@ const useVerifyOtp = () => {
   });
 };
 
-export { useCreateAcc, useVerifyOtp };
+export interface LoginData {
+  email?: string;
+  username?: string;
+  password: string;
+}
+
+const useLoginUser = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async (data: LoginData) => {
+      const response = await api.post("/auth/login", data);
+      return response.data as RegisterLoginRespose;
+    },
+    onSuccess: (data) => {
+      sessionStorage.setItem("otp_token", data.otp_token);
+      router.push("/verify-otp");
+      toast.success("Please verify your OTP to login");
+    },
+    onError: (error: any) => {
+      const message =
+        error.response?.data?.detail || "Failed to login";
+      toast.error(message);
+    },
+  });
+};
+
+export { useCreateAcc, useVerifyOtp, useLoginUser };
