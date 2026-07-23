@@ -1,8 +1,9 @@
 import fastapi
-from fastapi import FastAPI
+from fastapi import FastAPI, middleware
 from contextlib import asynccontextmanager
 import asyncio
 import logging
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.session import engine, Base
 from app.api.routes.auth import router as auth_router
@@ -36,6 +37,14 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
