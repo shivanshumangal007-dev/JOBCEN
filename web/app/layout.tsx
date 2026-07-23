@@ -3,6 +3,7 @@ import { Bodoni_Moda, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "./Provider";
 
 const fontHeading = Bodoni_Moda({
   subsets: ["latin"],
@@ -30,11 +31,11 @@ export default function RootLayout({
       className={cn(
         "h-full antialiased font-sans bg-background text-foreground",
         fontSans.variable,
-        fontHeading.variable
+        fontHeading.variable,
       )}
     >
       <body className="min-h-full flex flex-col">
-        {children}
+        <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>

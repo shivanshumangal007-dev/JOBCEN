@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import useResumeUpload from "@/hooks/Profile";
 import { useStore } from "@/store/useStore";
 import { UploadCloud, CheckCircle2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ export default function ResumeUploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
-
+  const resumeUpload = useResumeUpload();
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -29,17 +30,9 @@ export default function ResumeUploadPage() {
 
   const handleUpload = () => {
     if (!file) return;
-    setIsParsing(true);
-    // Simulate parsing delay
-    setTimeout(() => {
-      setIsParsing(false);
-      setParsedData({
-        name: { value: "John Doe", confidence: "high" },
-        bio: { value: "Software Engineer with 5+ years of experience.", confidence: "high" },
-        location: { value: "San Francisco, CA", confidence: "low" }, // Mock low confidence
-      });
-      toast.success("Resume parsed successfully.");
-    }, 2000);
+    
+    resumeUpload.mutate(file);
+    // setParsedData(data);
   };
 
   const handleSave = () => {
