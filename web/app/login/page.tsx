@@ -119,8 +119,16 @@ export default function LoginPage() {
               </svg>
               <span className="sr-only">Google</span>
             </Button>
-
           </div>
+          <span className="text-muted-foreground text-sm mx-auto flex gap-1 justify-center w-full">
+            Don't have an account?{" "}
+            <Link
+              href="/register"
+              className="text-primary underline underline-offset-4"
+            >
+              Register from here
+            </Link>
+          </span>
         </div>
       </div>
     </section>

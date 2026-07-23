@@ -135,6 +135,15 @@ export default function LoginPage() {
               <span className="sr-only">Google</span>
             </Button>
           </div>
+          <span className="text-muted-foreground text-sm mx-auto flex gap-1 justify-center w-full">
+            already have account?{" "}
+            <Link
+              href="/login"
+              className="text-primary underline underline-offset-4"
+            >
+              Login from here
+            </Link>
+          </span>
         </div>
       </div>
     </section>
