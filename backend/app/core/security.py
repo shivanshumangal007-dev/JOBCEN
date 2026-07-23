@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
-from jwt import encode, decode, PyJWTError
+from jwt import encode
 from passlib.context import CryptContext
 from app.core.config import settings
 import hashlib
@@ -43,8 +43,10 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: timedelta = No
     }
     return encode(payload, settings.REFRESH_SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def create_otp_token(email: str, purpose: str) -> str:
+def create_otp_token(email: str, purpose: str, remember_me: bool = False, new_password_hash: str = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(seconds=settings.OTP_EXPIRY_SECONDS)
-    to_encode = {"exp": expire, "email": email, "purpose": purpose}
+    to_encode = {"exp": expire, "email": email, "purpose": purpose, "remember_me": remember_me}
+    if new_password_hash:
+        to_encode["new_password_hash"] = new_password_hash
     encoded_jwt = encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt

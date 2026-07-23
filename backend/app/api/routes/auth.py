@@ -1,17 +1,17 @@
+from app.core.security import get_password_hash
 from jwt import decode, PyJWTError
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-import secrets
 import os
 
 from app.core.config import settings
 from app.db.session import get_db
 from app.db.crud.user import get_user_by_email, create_user, delete_user
-from app.schemas.user import UserCreate, UserResponse, Token, UserAuthenticate, UserBase, VerifyOTP
-from app.services.auth_services import authenticate_user, get_current_user
+from app.schemas.user import UserCreate, UserAuthenticate, VerifyOTP, UserForgotPassword
+from app.services.auth_services import authenticate_user
 from app.core.security import create_access_token, create_refresh_token
-from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token
+from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token, generate_and_send_opt_forget_password
 from app.core.utils.email import send_verification_email
 from app.api.deps import RedisLimiter
 
@@ -31,10 +31,10 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
     if existing_user:
         await send_verification_email(email=user.email)
-        return {"otp_token":  create_otp_token(email=user.email, purpose="register")}
+        return {"otp_token":  create_otp_token(email=user.email, purpose="register", remember_me=user.remember_me)}
 
     await create_user(user=user, db=db)
-    otp_data = await generate_and_send_otp(email=user.email, purpose="register")
+    otp_data = await generate_and_send_otp(email=user.email, purpose="register", remember_me=user.remember_me)
     return {"otp_token": otp_data["otp_token"]}
 
 
@@ -63,17 +63,17 @@ async def login(form_data: UserAuthenticate, db: AsyncSession = Depends(get_db))
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )        
-    
-    return await generate_and_send_otp(email=user.email, purpose="login")
-
+    return await generate_and_send_otp(email=user.email, purpose="login", remember_me=form_data.remember_me)
 
 
 @router.post("/verify-otp", dependencies=[Depends(otp_limiter)])
-async def verify_otp_entered_by_user(response: Response,request: VerifyOTP, db: AsyncSession = Depends(get_db)):
+async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db: AsyncSession = Depends(get_db)):
     try:
         payload = decode(request.otp_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email = payload.get("email")
         purpose = payload.get("purpose")
+        remember_me = payload.get("remember_me")
+
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP token.")
         
@@ -87,14 +87,17 @@ async def verify_otp_entered_by_user(response: Response,request: VerifyOTP, db: 
         await db.commit()
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-            secure=True,         # Requires HTTPS in production
-            samesite="lax",      # CSRF protection
-            max_age=7 * 24 * 3600 # 7 days in seconds
-        )
+
+        if remember_me:
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+                secure=True,         # Requires HTTPS in production
+                samesite="lax",      # CSRF protection
+                max_age=7 * 24 * 3600 # 7 days in seconds
+            )
+        
         return {"access_token": access_token, "token_type": "bearer"}
         
     elif purpose == "login":
@@ -103,18 +106,25 @@ async def verify_otp_entered_by_user(response: Response,request: VerifyOTP, db: 
             await db.commit()
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-            secure=True,         # Requires HTTPS in production
-            samesite="lax",      # CSRF protection
-            max_age=7 * 24 * 3600 # 7 days in seconds
-        )
+        if remember_me:
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+                secure=True,         # Requires HTTPS in production
+                samesite="lax",      # CSRF protection
+                max_age=7 * 24 * 3600 # 7 days in seconds
+            )
         return {"access_token": access_token, "token_type": "bearer"}
         
     elif purpose == "delete":
         return await delete_user(user.id, db)
+
+    elif purpose == "forgot_password":
+        new_password_hash = payload.get("new_password_hash")
+        user.hashed_password = new_password_hash
+        await db.commit()
+        return {"message": "Password changed successfully"}
         
     else:
         raise HTTPException(status_code=400, detail="Invalid OTP purpose.")
@@ -152,3 +162,18 @@ async def refresh_access_token(request: Request):
 async def logout(response: Response):
     response.delete_cookie("refresh_token")
     return {"message": "Logged out successfully"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    user_data: UserForgotPassword,
+    db: AsyncSession = Depends(get_db)
+
+):
+    user = await get_user_by_email(email=user_data.email, db=db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_password_hash = get_password_hash(user_data.new_password)
+
+    return await generate_and_send_opt_forget_password(email=user.email, purpose="forgot_password", new_password_hash=new_password_hash)

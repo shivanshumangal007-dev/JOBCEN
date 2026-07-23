@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.models.job import Job, JobStatus
-from app.db.models.user import User
-import uuid
 from fastapi import HTTPException
 
 
