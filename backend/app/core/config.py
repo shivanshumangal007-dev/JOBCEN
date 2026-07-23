@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     CLOUDINARY_API_SECRET: str = ""
     CLOUDINARY_CLOUD_NAME: str = ""
 
+    ENVIRONMENT: str = "development"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

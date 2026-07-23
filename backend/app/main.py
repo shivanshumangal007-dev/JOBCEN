@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import logging
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app.db.session import engine, Base
 from app.api.routes.auth import router as auth_router
@@ -36,7 +37,17 @@ async def lifespan(app: FastAPI):
             
     yield
 
-app = FastAPI(lifespan=lifespan)
+environment = os.getenv("ENVIRONMENT")
+if environment == "production":
+    app = FastAPI(
+        lifespan=lifespan,
+        docs_url=None,     # Disables Swagger UI (/docs)
+        redoc_url=None,    # Disables ReDoc (/redoc)
+        openapi_url=None   # Disables OpenAPI schema (/openapi.json)
+    )
+else:
+    app = FastAPI(lifespan=lifespan)
+
 
 app.add_middleware(
     CORSMiddleware,
