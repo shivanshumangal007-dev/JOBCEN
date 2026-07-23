@@ -9,9 +9,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str | None = None
 
+class UserForgotPassword(UserBase):
+    new_password: str
+
+
 class UserAuthenticate(UserBase):
     password: str
-
+    remember_me: bool = False
 
 class UserResponse(UserBase):
     id: uuid.UUID

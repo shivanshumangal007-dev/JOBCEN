@@ -11,7 +11,7 @@ from app.db.session import get_db
 from app.core.config import settings
 from app.db.crud.user import get_user_by_email, get_user_by_id
 from app.schemas.user import TokenData
-from app.core.utils.email import send_email_otp
+from app.core.utils.email import send_email_otp, send_forgot_password_email
 from app.core.security import create_otp_token
 
 
@@ -56,15 +56,14 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
         raise credentials_exception
     return user
 
-async def generate_and_send_otp(email: str, purpose: str):
+async def generate_and_send_otp(email: str, purpose: str, remember_me: bool = False):
     otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
 
-    print(environment)
     if environment == "development":
         otp_code = "123456"
     
     otp_hash = get_password_hash(otp_code)
-    otp_token = create_otp_token(email=email, purpose=purpose)
+    otp_token = create_otp_token(email=email, purpose=purpose, remember_me=remember_me)
 
     redis_key = f"otp:{purpose}:{email}:{otp_token}"
 
@@ -75,6 +74,23 @@ async def generate_and_send_otp(email: str, purpose: str):
 
     return {"message": "Verification code dispatched successfully.", "otp_token": otp_token}
 
+async def generate_and_send_opt_forget_password(email: str, purpose: str, new_password_hash: str):
+    otp_code = "".join(secrets.choice("0123456789") for _ in range(6))
+
+    if environment == "development":
+        otp_code = "123456"
+    
+    otp_hash = get_password_hash(otp_code)
+    otp_token = create_otp_token(email=email, purpose=purpose, new_password_hash=new_password_hash)
+
+    redis_key = f"otp:{purpose}:{email}:{otp_token}"
+
+    await redis_client.setex(redis_key, OTP_EXPIRY_SECONDS, otp_hash)
+
+    if environment != "development":
+        await send_forgot_password_email(email=email, otp=otp_code)
+
+    return {"message": "Verification code dispatched successfully.", "otp_token": otp_token}
 
 
 async def verify_otp(email: str, purpose: str, otp: str, otp_token: str):

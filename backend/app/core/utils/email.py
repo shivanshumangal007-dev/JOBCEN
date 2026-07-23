@@ -16,7 +16,8 @@ async def send_email_otp(email: str, otp: str, purpose):
     action_text = {
         "register": "creating your account",
         "login": "logging into your profile",
-        "delete": "deleting your account"
+        "delete": "deleting your account",
+        "forgot_password": "resetting your password"
     }.get(purpose, "verifying your identity")
 
     payload = {
@@ -79,6 +80,41 @@ async def send_verification_email(email: str):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send verification email via Brevo."
+            )
+            
+    return True
+
+
+async def send_forgot_password_email(email: str, otp: str):
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {"name": settings.BREVO_SENDER_NAME, "email": settings.BREVO_SENDER_EMAIL},
+        "to": [{"email": email}],
+        "subject": f"Reset Your Password - {otp}",
+        "htmlContent": f"""
+            <div style="font-family: Arial, sans-serif; color: #333;">
+                <h3>Universal Profile Security</h3>
+                <p>We received a request to reset your password.</p>
+                <p>Your 6-digit verification code to reset your password is:</p>
+                <h2 style='color: #4F46E5; letter-spacing: 2px;'>{otp}</h2>
+                <p>This code will expire in 10 minutes. If you did not request a password reset, please safely ignore this email.</p>
+            </div>
+        """
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(BREVO_API_URL, headers=headers, json=payload)
+        
+        if response.status_code != 201:
+            print(f"Brevo API Error: {response.text}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send forgot password email via Brevo."
             )
             
     return True
