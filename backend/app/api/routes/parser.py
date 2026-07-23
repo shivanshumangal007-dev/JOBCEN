@@ -1,5 +1,6 @@
-from fastapi import UploadFile
+import asyncio
 import base64
+from fastapi import UploadFile
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +23,7 @@ async def upload_resume_data(
 ):
     job = await create_job_record(db, user_id=current_user.id)
 
-    parse_resume_task.delay(str(job.id), str(current_user.id), payload.raw_text)
+    asyncio.create_task(parse_resume_task(str(job.id), str(current_user.id), payload.raw_text))
 
     return {
         "job_id": job.id,
@@ -61,9 +62,9 @@ async def upload_pdf_resume_data(
         pdf_bytes = await file.read()
         b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
 
-        # Dispatch both tasks concurrently via Celery
-        parse_resume_task.delay(str(job.id), str(current_user.id), b64_pdf, True)
-        upload_to_cloudinary_task.delay(str(current_user.id), b64_pdf)
+        # Dispatch both tasks concurrently as background coroutines
+        asyncio.create_task(parse_resume_task(str(job.id), str(current_user.id), b64_pdf, True))
+        asyncio.create_task(upload_to_cloudinary_task(str(current_user.id), b64_pdf))
 
         return {
             "job_id": job.id,

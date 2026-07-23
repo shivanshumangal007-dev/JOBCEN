@@ -68,7 +68,7 @@ async def extract_universal_profile(raw_text: str, links: list | None = None) ->
         return validated_profile
         
     except Exception as e:
-        # Wrap extraction errors elegantly so Celery captures the precise trace failure
+        # Wrap extraction errors elegantly so the background task captures the precise trace failure
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Gemini Structured Extraction failed parsing input: {str(e)}"
