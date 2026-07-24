@@ -8,12 +8,15 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str | None = None
+    remember_me: bool = False
 
 class UserForgotPassword(UserBase):
     new_password: str
 
 
-class UserAuthenticate(UserBase):
+class UserAuthenticate(BaseModel):
+    username: str | None = None
+    email: EmailStr | None = None
     password: str
     remember_me: bool = False
 
