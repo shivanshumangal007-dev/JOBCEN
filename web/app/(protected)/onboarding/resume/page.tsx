@@ -9,6 +9,7 @@ import  {useResumeUpload, useJobStatus } from "@/hooks/Profile";
 import { UploadCloud, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ResumeUploadPage() {
   const router = useRouter();
@@ -18,13 +19,17 @@ export default function ResumeUploadPage() {
   const resumeUpload = useResumeUpload(); 
   const jobStatus = useJobStatus(jobId);
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (jobStatus.data?.status === "COMPLETED") {
       // The backend has processed the resume. 
-      // The layout will fetch the new profile automatically when we route to dashboard.
-      router.push("/dashboard");
+      // Invalidate the profile query so that layout fetches the new profile.
+      queryClient.invalidateQueries({ queryKey: ["profile", "me"] }).then(() => {
+        router.push("/dashboard");
+      });
     }
-  }, [jobStatus.data?.status, router]);
+  }, [jobStatus.data?.status, router, queryClient]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
