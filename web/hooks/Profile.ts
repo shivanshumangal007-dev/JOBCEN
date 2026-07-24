@@ -96,7 +96,7 @@ export const useProfile = () => {
       return response.data as UniversalProfile
     },
     staleTime: 1000 * 60 * 2,
-    enabled: !!Cookies.get("access_token"),
+    retry: false, // Don't retry on 401 Unauthorized
   })
 }
 

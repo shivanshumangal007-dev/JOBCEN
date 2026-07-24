@@ -9,6 +9,7 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path))
 
   if (isProtected && !accessToken) {
+    console.log("redirecting through middleware")
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("redirect", pathname) // send them back after login
     return NextResponse.redirect(loginUrl)
