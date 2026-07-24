@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { UniversalProfile } from '@/hooks/Profile';
 
 export type UpdateType = 'Experience' | 'Education' | 'Career Bridge' | 'Project' | 'Skill' | 'Link' | 'Bio';
 
@@ -9,32 +10,26 @@ export interface ProfileUpdate {
   data: any;
 }
 
-interface UserProfile {
-  name: string;
-  bio: string;
-  location: string;
-}
-
 interface StoreState {
   hasProfile: boolean;
-  profile: UserProfile;
+  profile: UniversalProfile | null;
   updates: ProfileUpdate[];
   setHasProfile: (val: boolean) => void;
-  updateProfile: (data: Partial<UserProfile>) => void;
+  updateProfile: (data: Partial<UniversalProfile>) => void;
   addUpdate: (update: Omit<ProfileUpdate, 'id' | 'date'>) => void;
 }
 
 export const useStore = create<StoreState>((set) => ({
   hasProfile: false,
-  profile: {
-    name: '',
-    bio: '',
-    location: '',
-  },
+  profile: null,
   updates: [],
   setHasProfile: (val) => set({ hasProfile: val }),
   updateProfile: (data) => 
-    set((state) => ({ profile: { ...state.profile, ...data } })),
+    set((state) => ({ 
+      profile: state.profile 
+        ? { ...state.profile, ...data } 
+        : (data as UniversalProfile) 
+    })),
   addUpdate: (update) => 
     set((state) => {
       const newUpdate: ProfileUpdate = {

@@ -4,6 +4,7 @@ import { ProfileLoader } from "@/components/Animated-Loader";
 import { useProfile } from "@/hooks/Profile";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useStore } from "@/store/useStore";
 
 export default function ProtectedLayout({
   children,
@@ -13,6 +14,9 @@ export default function ProtectedLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { data: user, isLoading, isError, error } = useProfile();
+  
+  const updateProfile = useStore((state) => state.updateProfile);
+  const setHasProfile = useStore((state) => state.setHasProfile);
 
   useEffect(() => {
     if (!isLoading) {
@@ -25,7 +29,7 @@ export default function ProtectedLayout({
           router.push("/login");
         } else if (status === 404) {
           // 404 means the user is authenticated but has no profile yet
-          if (pathname !== "/onboarding") {
+          if (!pathname.startsWith("/onboarding")) {
             console.log("Redirecting to onboarding: Profile not found");
             router.push("/onboarding");
           }
@@ -36,13 +40,16 @@ export default function ProtectedLayout({
         }
       } else if (user) {
         // User has a profile
+        updateProfile(user.profile);
+        setHasProfile(true);
+        
         if (pathname === "/onboarding") {
           console.log("User already has a profile, redirecting to dashboard");
           router.push("/dashboard");
         }
       }
     }
-  }, [isLoading, isError, error, user, pathname, router]);
+  }, [isLoading, isError, error, user, pathname, router, updateProfile, setHasProfile]);
 
   // Determine what to render based on state
   if (isLoading) {
@@ -50,12 +57,12 @@ export default function ProtectedLayout({
   }
 
   // If no profile (404), only allow rendering the onboarding page
-  if (isError && (error as any)?.response?.status === 404 && pathname === "/onboarding") {
+  if (isError && (error as any)?.response?.status === 404 && pathname.startsWith("/onboarding")) {
     return <>{children}</>;
   }
 
   // If user has a profile, allow rendering anything EXCEPT onboarding (which redirects)
-  if (user && pathname !== "/onboarding") {
+  if (user && !pathname.startsWith("/onboarding")) {
     return <>{children}</>;
   }
 

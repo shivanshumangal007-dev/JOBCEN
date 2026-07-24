@@ -1,6 +1,6 @@
 "use client";
 
-import { useStore } from "@/store/useStore";
+import { useProfile } from "@/hooks/Profile";
 import { useRouter } from "next/navigation";
 import { AnimatedText } from "@/components/animations/AnimatedText";
 import { MagneticButton } from "@/components/animations/MagneticButton";
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 export default function Home() {
-  const hasProfile = useStore((state) => state.hasProfile);
+  const { data: user } = useProfile();
+  const hasProfile = !!user;
   const router = useRouter();
 
   const handleCtaClick = () => {

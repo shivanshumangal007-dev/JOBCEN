@@ -13,7 +13,13 @@ export default function ManualOnboardingPage() {
   const setHasProfile = useStore((state) => state.setHasProfile);
 
   const handleSubmit = (data: any) => {
-    updateProfile(data);
+    updateProfile({
+      full_name: data.name,
+      bio: data.bio || "",
+      contact: {
+        address: data.location || ""
+      }
+    } as any);
     setHasProfile(true);
     router.push("/dashboard");
   };

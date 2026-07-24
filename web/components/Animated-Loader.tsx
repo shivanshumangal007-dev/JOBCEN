@@ -44,7 +44,7 @@ export function ProfileLoader() {
         />
       </svg>
 
-      <div className="relative h-7 overflow-hidden">
+      <div className="relative h-7 w-full overflow-hidden">
         <p
           key={messageIndex}
           className="animate-loader-text-in text-sm tracking-[0.14em] uppercase text-[#1A1A1A]/70"
@@ -80,18 +80,17 @@ export function ProfileLoader() {
         @keyframes loader-text-in {
           from {
             opacity: 0;
-            transform: translateY(8px);
+            transform: translate(-50%, 8px);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, 0);
           }
         }
         .animate-loader-text-in {
           animation: loader-text-in 0.5s ease-out forwards;
           position: absolute;
           left: 50%;
-          transform: translateX(-50%);
           white-space: nowrap;
         }
 

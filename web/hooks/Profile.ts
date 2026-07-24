@@ -1,6 +1,6 @@
 import { api } from "./utils"
 import { toast } from "sonner"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useMutation, UseMutationResult, useQuery } from "@tanstack/react-query"
 import Cookies from "js-cookie";
 
 export interface ContactInfo {
@@ -87,36 +87,76 @@ export interface UniversalProfile {
   preferences: JobPreferences;
   achievements: string[];
 }
-
+export interface User {
+  created_at: string;
+  email: string;
+  id: string;
+  is_active: boolean;
+  username: string;
+}
+export interface profileResponse {
+  profile: UniversalProfile;
+  user:  User;
+}
+interface resumeResponse{
+  job_id: string,
+  status: string,
+  message: string,
+}
+interface jobresponse{
+  "job_id": string,
+  "status": string,
+  "error": string,
+  "updated_at": string
+}
 export const useProfile = () => {
-  return useQuery<UniversalProfile>({
+  return useQuery<profileResponse>({
     queryKey: ["profile", "me"],
     queryFn: async () => {
       const response = await api.get("/profile/me")
-      return response.data as UniversalProfile
+      return response.data as profileResponse
     },
     staleTime: 1000 * 60 * 2,
     retry: false, // Don't retry on 401 Unauthorized
   })
 }
 
-const useResumeUpload = () => {
+export const useResumeUpload = () : UseMutationResult<resumeResponse, any, File, unknown> => {
   return useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append("file", file)
 
-      const response = await api.post("/uplaod-pdf", formData)
-      return response.data
+      const response = await api.post("/upload-pdf", formData)
+      return response.data as resumeResponse
     },
-    onSuccess: () => {
-      toast.success("Resume uploaded successfully")
+    onSuccess: (data) => {
+      console.log(data)
+      toast.success(data.message)
     },
     onError: (error: any) => {
-      toast.error("Failed to upload resume")
+      toast.error("Failed to parse resume")
       console.log("error in uploading resume:", error)
     },
   })
 }
 
-export default useResumeUpload
+export const useJobStatus = (jobID: string | null) => {
+  return useQuery({
+    queryKey: ["jobStatus", jobID],
+    queryFn: async () => {
+      if (!jobID) return null;
+      const response = await api.get(`/status/${jobID}`);
+      return response.data as jobresponse;
+    },
+    enabled: !!jobID,
+    refetchInterval: (query) => {
+      const data = query.state.data as jobresponse | undefined;
+      console.log(data)
+      if (data?.status === "COMPLETED" || data?.status === "FAILED") {
+        return false;
+      }
+      return 3000; // Poll every 2 seconds
+    },
+  });
+};

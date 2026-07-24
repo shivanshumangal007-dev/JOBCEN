@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useStore } from "@/store/useStore";
+import { useProfile } from "@/hooks/Profile";
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, ArrowRight, Activity, Plus } from "lucide-react";
+import { Briefcase, MapPin, Calendar, ArrowRight, Activity, Plus, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const profile = useStore((state) => state.profile);
+  const { data: profileResponse } = useProfile();
+  const profile = profileResponse?.profile;
+  const user = profileResponse?.user;
   const updates = useStore((state) => state.updates);
 
   return (
@@ -20,21 +23,29 @@ export default function DashboardPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
         <div className="space-y-4">
           <h1 className="text-5xl font-heading font-medium text-primary uppercase tracking-tight">
-            {profile.name || "Your Name"}
+            {profile?.full_name || "Your Name"}
           </h1>
           <div className="flex items-center gap-4 text-muted-foreground font-light text-lg">
-            {profile.location && (
+            {profile?.contact?.address && (
               <span className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" /> {profile.location}
+                <MapPin className="w-5 h-5" /> {profile.contact.address}
               </span>
             )}
           </div>
           <p className="text-xl max-w-2xl font-light text-foreground/90 mt-2">
-            {profile.bio || "Add a bio to complete your master profile."}
+            {profile?.bio || "Add a bio to complete your master profile."}
           </p>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4 mt-6 md:mt-0">
+          <Button 
+            variant="outline" 
+            className="rounded-none px-6 uppercase tracking-widest text-xs h-12"
+            onClick={() => router.push("/dashboard/profile")}
+          >
+            <User className="w-4 h-4 mr-2" />
+            Full Profile
+          </Button>
           <Button 
             variant="outline" 
             className="rounded-none px-6 uppercase tracking-widest text-xs h-12"
