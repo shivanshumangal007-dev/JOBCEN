@@ -111,7 +111,7 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
             max_age=60 * 15      # 15 minutes in seconds
         )
         
-        return 
+        return {"message": "Account verified successfully"}
         
     elif purpose == "login":
         if not user.is_active:
@@ -137,7 +137,7 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
             samesite="lax",      # CSRF protection
             max_age=60 * 15      # 15 minutes in seconds
         )
-        return 
+        return {"message": "Login verified successfully"}
         
     elif purpose == "delete":
         return await delete_user(user.id, db)

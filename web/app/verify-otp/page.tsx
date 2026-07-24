@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   InputOTP,
@@ -14,9 +14,13 @@ import { useVerifyOtp } from "@/hooks/auth";
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
   const verifyOtpHook = useVerifyOtp();
-  const email = sessionStorage.getItem("verification_email");
+
+  useEffect(() => {
+    setEmail(sessionStorage.getItem("verification_email"));
+  }, []);
   
   const submitHandler = async () => {
     if (otp.length !== 6) {
@@ -62,7 +66,7 @@ export default function VerifyOTPPage() {
           </InputOTPGroup>
         </InputOTP>
         <p className="text-muted-foreground text-sm">
-            opt is sent on {email}
+            OTP was sent to {email || "your email"}
           </p>
         <Button 
           className="w-full" 
