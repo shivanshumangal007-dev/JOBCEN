@@ -11,14 +11,16 @@ from app.db.crud.user import get_user_by_email, create_user, delete_user
 from app.schemas.user import UserCreate, UserAuthenticate, VerifyOTP, UserForgotPassword
 from app.services.auth_services import authenticate_user
 from app.core.security import create_access_token, create_refresh_token
-from app.services.auth_services import generate_and_send_otp, verify_otp, create_otp_token, generate_and_send_opt_forget_password
+from app.services.auth_services import generate_and_send_otp, verify_otp, generate_and_send_opt_forget_password
 from app.core.utils.email import send_verification_email
 from app.api.deps import RedisLimiter
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 auth_limiter = RedisLimiter(times=5, seconds=60, group="auth")
-otp_limiter = RedisLimiter(times=5, seconds=60,group="otp")
+otp_limiter = RedisLimiter(times=5, seconds=60, group="otp")
+refresh_limiter = RedisLimiter(times=10, seconds=60, group="refresh")
+forgot_password_limiter = RedisLimiter(times=3, seconds=60, group="forgot_password")
 
 environment = os.getenv("ENVIRONMENT")
 
@@ -31,7 +33,9 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
     if existing_user:
         await send_verification_email(email=user.email)
-        return {"otp_token":  create_otp_token(email=user.email, purpose="register", remember_me=user.remember_me)}
+        # Return the same shape so attackers can't distinguish new vs existing users
+        otp_data = await generate_and_send_otp(email=user.email, purpose="register", remember_me=user.remember_me)
+        return {"otp_token": otp_data["otp_token"]}
 
     await create_user(user=user, db=db)
     otp_data = await generate_and_send_otp(email=user.email, purpose="register", remember_me=user.remember_me)
@@ -77,7 +81,7 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
     except PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP token.")
         
-    await verify_otp(email=email, purpose=purpose, otp=request.otp, otp_token=request.otp_token)
+    otp_result = await verify_otp(email=email, purpose=purpose, otp=request.otp, otp_token=request.otp_token)
     user = await get_user_by_email(email, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -97,8 +101,17 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
                 samesite="lax",      # CSRF protection
                 max_age=7 * 24 * 3600 # 7 days in seconds
             )
+
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+            secure=True,         # Requires HTTPS in production
+            samesite="lax",      # CSRF protection
+            max_age=60 * 15      # 15 minutes in seconds
+        )
         
-        return {"access_token": access_token, "token_type": "bearer"}
+        return 
         
     elif purpose == "login":
         if not user.is_active:
@@ -115,13 +128,25 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
                 samesite="lax",      # CSRF protection
                 max_age=7 * 24 * 3600 # 7 days in seconds
             )
-        return {"access_token": access_token, "token_type": "bearer"}
+
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
+            secure=True,         # Requires HTTPS in production
+            samesite="lax",      # CSRF protection
+            max_age=60 * 15      # 15 minutes in seconds
+        )
+        return 
         
     elif purpose == "delete":
         return await delete_user(user.id, db)
 
     elif purpose == "forgot_password":
-        new_password_hash = payload.get("new_password_hash")
+        # new_password_hash is now returned from verify_otp (stored in Redis, not JWT)
+        new_password_hash = otp_result.get("new_password_hash")
+        if not new_password_hash:
+            raise HTTPException(status_code=400, detail="Password reset data missing.")
         user.hashed_password = new_password_hash
         await db.commit()
         return {"message": "Password changed successfully"}
@@ -129,9 +154,8 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
     else:
         raise HTTPException(status_code=400, detail="Invalid OTP purpose.")
     
-@router.post("/refresh")
-async def refresh_access_token(request: Request):
-
+@router.post("/refresh", dependencies=[Depends(refresh_limiter)])
+async def refresh_access_token(request: Request, response: Response):
 
     refresh_token = request.cookies.get("refresh_token")
 
@@ -150,30 +174,39 @@ async def refresh_access_token(request: Request):
     except PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
-    # Issue a new short-lived access token
+    # Issue a new short-lived access token as an HTTP-only cookie
     new_access_token = create_access_token(subject=user_id)
 
-    return {
-        "access_token": new_access_token,
-        "token_type": "bearer"
-    }
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 15      # 15 minutes in seconds
+    )
+    return {"message": "Token refreshed"}
 
-@router.post("/logout")
+@router.post("/logout", dependencies=[Depends(refresh_limiter)])
 async def logout(response: Response):
     response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token")
     return {"message": "Logged out successfully"}
 
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", dependencies=[Depends(forgot_password_limiter)])
 async def forgot_password(
     user_data: UserForgotPassword,
     db: AsyncSession = Depends(get_db)
 
 ):
     user = await get_user_by_email(email=user_data.email, db=db)
+    
+    # Always return the same response to prevent user enumeration
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return {"message": "If an account exists with this email, a verification code has been sent."}
     
     new_password_hash = get_password_hash(user_data.new_password)
 
-    return await generate_and_send_opt_forget_password(email=user.email, purpose="forgot_password", new_password_hash=new_password_hash)
+    await generate_and_send_opt_forget_password(email=user.email, purpose="forgot_password", new_password_hash=new_password_hash)
+    return {"message": "If an account exists with this email, a verification code has been sent."}

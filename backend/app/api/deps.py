@@ -10,16 +10,14 @@ redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract the real client IP, respecting proxy headers."""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # X-Forwarded-For can be a comma-separated list; the first is the real client
-        return forwarded_for.split(",")[0].strip()
+    """Extract the real client IP.
 
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip.strip()
-
+    NOTE: We intentionally do NOT trust X-Forwarded-For or X-Real-IP headers
+    because any client can spoof them to bypass rate limiting.
+    If you deploy behind a trusted reverse proxy (Nginx, Cloudflare, etc.),
+    configure the proxy to set a trusted header and read only the LAST
+    entry (the one your proxy appended), not the first.
+    """
     return request.client.host
 
 

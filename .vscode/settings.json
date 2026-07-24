@@ -1,0 +1,9 @@
+{
+    "cSpell.words": [
+        "redoc",
+        "zadd",
+        "zcard",
+        "zrem",
+        "zremrangebyscore"
+    ]
+}

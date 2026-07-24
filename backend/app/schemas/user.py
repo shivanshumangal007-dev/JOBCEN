@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str | None = None
+    remember_me: bool = False
 
 class UserForgotPassword(UserBase):
     new_password: str

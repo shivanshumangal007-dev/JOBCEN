@@ -2,10 +2,12 @@ from app.db.session import get_db
 from app.db.crud.user import get_user_by_email, create_user
 from app.schemas.user import UserCreate
 from app.core.security import create_access_token, create_refresh_token
+from app.core.config import settings
 
 import os
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from app.api.deps import RedisLimiter
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +30,26 @@ google_oauth.register(
 )
 
 
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    """Helper to set both auth cookies consistently."""
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=7 * 24 * 3600  # 7 days in seconds
+    )
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 15  # 15 minutes in seconds
+    )
+
+
 @router.get("/login/google", dependencies=[Depends(google_limiter)])
 async def google_login(request: Request):
     """Step A: Redirect user to Google sign-in."""
@@ -36,8 +58,8 @@ async def google_login(request: Request):
 
 
 @router.get("/google/callback", dependencies=[Depends(google_limiter)])
-async def google_callback(response: Response,request: Request, db: AsyncSession = Depends(get_db)):
-    """Step B: Handle Google payload, link account, issue JWT."""
+async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
+    """Step B: Handle Google payload, link account, issue JWT via cookies."""
     try:
         token = await google_oauth.google.authorize_access_token(request)
         user_info = token.get("userinfo")
@@ -58,30 +80,25 @@ async def google_callback(response: Response,request: Request, db: AsyncSession 
         user_in = UserCreate(email=email, username=name, password=None)
         user = await create_user(user=user_in, db=db)
 
+    # Activate the user (Google-verified email is trusted)
+    if not user.is_active:
+        user.is_active = True
+        await db.commit()
+
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(user.id)
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-        secure=True,         # Requires HTTPS in production
-        samesite="lax",      # CSRF protection
-        max_age=7 * 24 * 3600 # 7 days in seconds
-    )
-    
-    from fastapi.responses import RedirectResponse
-    from app.core.config import settings
-    
-    # Redirect back to the frontend website
-    redirect_url = f"{settings.FRONTEND_URL}/auth-callback?token={access_token}&user_id={user.id}"
-    return RedirectResponse(url=redirect_url)
+
+    # Redirect to frontend without tokens in URL — set them as HTTP-only cookies
+    redirect_response = RedirectResponse(url=f"{settings.FRONTEND_URL}/auth-callback")
+    _set_auth_cookies(redirect_response, access_token, refresh_token)
+    return redirect_response
 
 
 class GoogleTokenPayload(BaseModel):
     id_token: str
 
 @router.post("/google", dependencies=[Depends(google_limiter)])
-async def verify_google_token(response: Response,payload: GoogleTokenPayload, db: AsyncSession = Depends(get_db)):
+async def verify_google_token(response: Response, payload: GoogleTokenPayload, db: AsyncSession = Depends(get_db)):
     """Handle id_token sent directly from the frontend React app."""
     try:
         # Collect all valid client IDs (Electron/web + mobile)
@@ -112,8 +129,8 @@ async def verify_google_token(response: Response,payload: GoogleTokenPayload, db
         if not email:
             raise HTTPException(status_code=400, detail="No email provided by Google")
 
-        # Find or create user
-        user = await get_user_by_email(db, email)
+        # Find or create user (fixed: email first, db second)
+        user = await get_user_by_email(email, db)
         if not user:
             if not name:
                 name = email.split("@")[0]
@@ -123,19 +140,18 @@ async def verify_google_token(response: Response,payload: GoogleTokenPayload, db
                 password=None
             )
             user = await create_user(user=user_in, db=db)
+
+        # Activate the user (Google-verified email is trusted)
+        if not user.is_active:
+            user.is_active = True
+            await db.commit()
             
-        # Generate our own JWT access token
+        # Set tokens as HTTP-only cookies — don't return them in the body
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-            secure=True,         # Requires HTTPS in production
-            samesite="lax",      # CSRF protection
-            max_age=7 * 24 * 3600 # 7 days in seconds
-        )
-        return {"access_token": access_token, "token_type": "bearer", "user_id": str(user.id), "refresh_token": refresh_token}
+        _set_auth_cookies(response, access_token, refresh_token)
+
+        return {"user_id": str(user.id)}
         
     except ValueError:
         # Invalid token

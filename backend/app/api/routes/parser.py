@@ -60,6 +60,15 @@ async def upload_pdf_resume_data(
         job = await create_job_record(db, user_id=current_user.id)
 
         pdf_bytes = await file.read()
+
+        # Prevent OOM from arbitrarily large uploads
+        MAX_PDF_SIZE = 10 * 1024 * 1024  # 10 MB
+        if len(pdf_bytes) > MAX_PDF_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="File too large. Maximum size is 10MB."
+            )
+
         b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
 
         # Dispatch both tasks concurrently as background coroutines
