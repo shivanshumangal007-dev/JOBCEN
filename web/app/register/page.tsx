@@ -7,8 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { createAcc, useCreateAcc } from "@/hooks/auth";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -16,7 +14,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<any | null>(null);
   const createAccHook = useCreateAcc();
-  const router = useRouter();
 
   const submitHandler = async () => {
     const data: createAcc = {
@@ -39,7 +36,7 @@ export default function LoginPage() {
         <h2 className="mt-6 font-bold text-3xl">Create an account</h2>
         {error && (
           <div className="text-red-500">
-            {error?.response?.data?.detail || error?.message}
+            {error?.response?.data?.detail || error?.message || "failed to create account"}
           </div>
         )}
         <form action="#" className="space-y-6">

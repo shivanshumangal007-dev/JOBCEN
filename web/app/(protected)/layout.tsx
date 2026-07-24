@@ -1,26 +1,22 @@
+import { api } from "@/hooks/utils"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
-async function getCurrentUser() {
-  const cookieStore = await cookies()
+// async function getCurrentUser() {
+//   const cookieStore = await cookies()
 
-  const response = await fetch(`${process.env.API_URL}/auth/me`, {
-    headers: {
-      Cookie: cookieStore.toString(), // forward the httpOnly cookie to your backend
-    },
-    cache: "no-store",
-  })
-
-  if (!response.ok) return null
-  return response.json()
-}
+//   const response = await api.get("/profile/me")
+//   console.log(response.data)
+//   if (!response.data) return null
+//   return response.data
+// }
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser()
+  // const user = await getCurrentUser()
 
-  if (!user) {
-    redirect("/login")
-  }
+  // if (!user) {
+  //   redirect("/login")
+  // }
 
   return <>{children}</>
 }

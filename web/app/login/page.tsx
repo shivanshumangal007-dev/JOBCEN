@@ -20,12 +20,20 @@ export default function LoginPage() {
       username: identifier.includes("@") ? undefined : identifier,
       email: identifier.includes("@") ? identifier : undefined,
       password,
+      remember_me: (
+        document.getElementById("rememberMe") as HTMLInputElement
+      )?.checked || false,
     };
     try {
       await loginUserHook.mutateAsync(data);
-      sessionStorage.setItem("verification_email", identifier);
+      if (data.remember_me) {
+        localStorage.setItem("verification_email", identifier);
+      } else {
+        sessionStorage.setItem("verification_email", identifier);
+      }
       setError(null);
     } catch (err) {
+      console.log(err);
       setError(err);
     }
   };
@@ -34,11 +42,11 @@ export default function LoginPage() {
     <section className="flex min-h-screen w-full items-center justify-center py-4 lg:py-20">
       <div className="w-full max-w-sm space-y-6">
         <h2 className="mt-6 font-bold text-3xl">Sign in to your account</h2>
-        {error && (
+        {/* {error && (
           <div className="text-red-500">
-            {error?.response?.data?.detail || error?.message}
+            {error?.response?.data?.detail || error?.message || "failed to login"}
           </div>
-        )}
+        )} */}
         <form onSubmit={submitHandler} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email address or Username</Label>
