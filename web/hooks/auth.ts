@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "./utils";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie"
 
 export interface createAcc {
   username: string;
@@ -60,12 +59,7 @@ const useVerifyOtp = () => {
       const response = await api.post("/auth/verify-otp", data);
       return response.data;
     },
-    onSuccess: (data) => {
-      Cookies.set("access_token", data.access_token, {
-        expires: 7,          // days
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      })
+    onSuccess: () => {
       toast.success("Account verified successfully");
       router.push("/onboarding"); // or /onboarding depending on flow
     },
