@@ -12,7 +12,7 @@ router = APIRouter(prefix="/profile", tags=["user-profile"])
 
 
 
-@router.get("/me", response_model=UserBase, dependencies=[Depends(auth_limiter)])
+@router.get("/me", dependencies=[Depends(auth_limiter)])
 async def me(current_user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     user_profile = await get_current_user_profile(current_user.id, db)
 
@@ -20,7 +20,7 @@ async def me(current_user = Depends(get_current_user), db: AsyncSession = Depend
         raise HTTPException(status_code=404, detail="User not found")
 
     
-    return user_profile
+    return {"profile":user_profile, "user":current_user}
 
 @router.post("/delete-profile", dependencies=[Depends(auth_limiter)])
 async def delete_profile(current_user: UserBase = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
