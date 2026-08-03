@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "./utils";
 import { useRouter } from "next/navigation";
@@ -40,12 +40,11 @@ const useCreateAcc = () => {
     onError: (error: any) => {
       // const message =
       //   error.response?.data?.detail || "Failed to create account";
-      const message = extractErrorMessage(error)
+      const message = extractErrorMessage(error);
       toast.error(message);
     },
   });
 };
-
 
 export interface VerifyOtpData {
   otp: string;
@@ -66,7 +65,7 @@ const useVerifyOtp = () => {
     onError: (error: any) => {
       // const message =
       //   error.response?.data?.detail || "Failed to verify OTP";
-      const message = extractErrorMessage(error)
+      const message = extractErrorMessage(error);
       toast.error(message);
     },
   });
@@ -76,14 +75,14 @@ export interface LoginData {
   email?: string;
   username?: string;
   password: string;
-  remember_me?: boolean
+  remember_me?: boolean;
 }
 
 const useLoginUser = () => {
   const router = useRouter();
   return useMutation({
     mutationFn: async (data: LoginData) => {
-      console.log(data)
+      console.log(data);
       const response = await api.post("/auth/login", data);
       return response.data as RegisterLoginRespose;
     },
@@ -121,7 +120,9 @@ const useForgotPassword = () => {
         toast.success("Verification code sent to your email");
       } else {
         // Fallback if the backend doesn't return a token (e.g., user not found response logic)
-        toast.success(data.message || "Verification code sent if email exists.");
+        toast.success(
+          data.message || "Verification code sent if email exists.",
+        );
       }
     },
     onError: (error: any) => {
@@ -131,15 +132,16 @@ const useForgotPassword = () => {
   });
 };
 
-
 const useLogout = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
       const response = await api.post("/auth/logout");
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Logged out successfully");
       router.push("/login");
     },
@@ -147,8 +149,8 @@ const useLogout = () => {
       const message = extractErrorMessage(error);
       toast.error(message);
     },
-  })
-}
+  });
+};
 
 const useGoogleAuth = () => {
   const router = useRouter();
@@ -168,4 +170,25 @@ const useGoogleAuth = () => {
   });
 };
 
-export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword, useLogout, useGoogleAuth };
+const useUpdateRefreshToken = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/auth/refresh");
+      return response.data;
+    },
+    onError: (error: any) => {
+      const message = extractErrorMessage(error);
+      toast.error(message);
+    },
+  });
+};
+
+export {
+  useCreateAcc,
+  useVerifyOtp,
+  useLoginUser,
+  useForgotPassword,
+  useLogout,
+  useGoogleAuth,
+  useUpdateRefreshToken,
+};

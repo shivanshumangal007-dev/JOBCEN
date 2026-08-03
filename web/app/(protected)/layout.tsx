@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import { Navbar } from "@/components/Navbar";
+import { useUpdateRefreshToken } from "@/hooks/auth";
 
 
 const renderer = (children: ReactNode) => {
@@ -26,6 +27,7 @@ export default function ProtectedLayout({
   
   const updateProfile = useStore((state) => state.updateProfile);
   const setHasProfile = useStore((state) => state.setHasProfile);
+  const { mutateAsync: updateRefreshToken } = useUpdateRefreshToken();
 
   useEffect(() => {
     if (!isLoading) {
@@ -34,8 +36,11 @@ export default function ProtectedLayout({
         const status = (error as any)?.response?.status;
         
         if (status === 401) {
-          console.log("Redirecting to login: 401 Unauthorized");
-          router.push("/login");
+          console.log("refreshing your token")
+          updateRefreshToken().catch(() => {
+            console.log("Redirecting to login: 401 Unauthorized");
+            router.push("/login");
+          });
         } else if (status === 404) {
           // 404 means the user is authenticated but has no profile yet
           if (!pathname.startsWith("/onboarding")) {
@@ -58,7 +63,7 @@ export default function ProtectedLayout({
         }
       }
     }
-  }, [isLoading, isError, error, user, pathname, router, updateProfile, setHasProfile]);
+  }, [isLoading, isError, error, user, pathname, router, updateProfile, setHasProfile, updateRefreshToken]);
 
   // Determine what to render based on state
   if (isLoading) {
