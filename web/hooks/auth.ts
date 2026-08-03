@@ -149,4 +149,23 @@ const useLogout = () => {
     },
   })
 }
-export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword, useLogout };
+
+const useGoogleAuth = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async (id_token: string) => {
+      const response = await api.post("/google-auth/google", { id_token });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Logged in successfully with Google");
+      router.push("/dashboard");
+    },
+    onError: (error: any) => {
+      const message = extractErrorMessage(error);
+      toast.error(message);
+    },
+  });
+};
+
+export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword, useLogout, useGoogleAuth };

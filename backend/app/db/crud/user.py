@@ -8,7 +8,7 @@ from app.core.security import get_password_hash
 import uuid
 
 async def create_user(user: UserCreate, db: AsyncSession):
-    hashed_password = get_password_hash(user.password)
+    hashed_password = get_password_hash(user.password) if user.password else None
     db_user = User(
         email = user.email,
         username = user.username,

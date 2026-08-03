@@ -23,8 +23,8 @@ google_limiter = RedisLimiter(times=10, seconds=60, group="google_auth")
 
 google_oauth.register(
     name="google",
-    client_id=os.getenv("GOOGLE_CLIENT_ID"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    client_id=settings.GOOGLE_CLIENT_ID,
+    client_secret=settings.GOOGLE_CLIENT_SECRET,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
@@ -104,8 +104,8 @@ async def verify_google_token(response: Response, payload: GoogleTokenPayload, d
         # Collect all valid client IDs (Electron/web + mobile)
         valid_client_ids = [
             cid for cid in [
-                os.getenv("GOOGLE_CLIENT_ID"),          # Electron / Web
-                os.getenv("GOOGLE_CLIENT_ID_MOBILE"),   # Mobile (Android/iOS)
+                settings.GOOGLE_CLIENT_ID,          # Electron / Web
+                getattr(settings, "GOOGLE_CLIENT_ID_MOBILE", None),   # Mobile (Android/iOS)
             ] if cid
         ]
 
