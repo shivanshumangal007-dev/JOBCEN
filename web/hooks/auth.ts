@@ -101,4 +101,34 @@ const useLoginUser = () => {
   });
 };
 
-export { useCreateAcc, useVerifyOtp, useLoginUser };
+export interface ForgotPasswordData {
+  email: string;
+  new_password: string;
+}
+
+const useForgotPassword = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async (data: ForgotPasswordData) => {
+      const response = await api.post("/auth/forgot-password", data);
+      return response.data as RegisterLoginRespose;
+    },
+    onSuccess: (data, variables) => {
+      if (data.otp_token) {
+        sessionStorage.setItem("otp_token", data.otp_token);
+        sessionStorage.setItem("verification_email", variables.email);
+        router.push("/verify-otp");
+        toast.success("Verification code sent to your email");
+      } else {
+        // Fallback if the backend doesn't return a token (e.g., user not found response logic)
+        toast.success(data.message || "Verification code sent if email exists.");
+      }
+    },
+    onError: (error: any) => {
+      const message = extractErrorMessage(error);
+      toast.error(message);
+    },
+  });
+};
+
+export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword };

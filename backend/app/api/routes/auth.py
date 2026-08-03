@@ -208,5 +208,5 @@ async def forgot_password(
     
     new_password_hash = get_password_hash(user_data.new_password)
 
-    await generate_and_send_opt_forget_password(email=user.email, purpose="forgot_password", new_password_hash=new_password_hash)
-    return {"message": "If an account exists with this email, a verification code has been sent."}
+    # We must return the otp_token to the frontend so it can verify the OTP.
+    return await generate_and_send_opt_forget_password(email=user.email, purpose="forgot_password", new_password_hash=new_password_hash)
