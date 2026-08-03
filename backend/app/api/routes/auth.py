@@ -17,10 +17,10 @@ from app.api.deps import RedisLimiter
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-auth_limiter = RedisLimiter(times=5, seconds=60, group="auth")
+auth_limiter = RedisLimiter(times=10, seconds=60, group="auth")
 otp_limiter = RedisLimiter(times=5, seconds=60, group="otp")
 refresh_limiter = RedisLimiter(times=10, seconds=60, group="refresh")
-forgot_password_limiter = RedisLimiter(times=3, seconds=60, group="forgot_password")
+forgot_password_limiter = RedisLimiter(times=5, seconds=60, group="forgot_password")
 
 environment = os.getenv("ENVIRONMENT")
 
