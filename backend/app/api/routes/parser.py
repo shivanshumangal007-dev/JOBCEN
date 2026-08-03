@@ -1,7 +1,7 @@
 import asyncio
 import base64
 from fastapi import UploadFile
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -11,6 +11,7 @@ from app.schemas.parser import ResumeUploadPayload
 from app.db.crud.job import create_job_record, get_job_by_id
 from app.tasks.parser_worker import parse_resume_task, upload_to_cloudinary_task
 from app.api.deps import RedisLimiter
+from app.db.crud.profile import get_current_user_profile
 
 router = APIRouter(tags=["Parser"])
 upload_limiter = RedisLimiter(times=2, seconds=60, group="upload")
@@ -84,4 +85,53 @@ async def upload_pdf_resume_data(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload resume: {str(e)}"
-        )
+        )
+
+
+@router.websocket("/get-parser-result")
+async def get_parser_result_through_websocket(
+    websocket: WebSocket,
+    job_id: str,
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    await websocket.accept()
+    try:
+        while True:
+            await asyncio.sleep(1)
+            # Expire session so we don't get cached results
+            db.expire_all()
+            job = await get_job_by_id(job_id=job_id, user_id=current_user.id, db=db)
+
+            if not job:
+                await websocket.send_text("Job task tracker not found or access unauthorized.")
+                await websocket.close()
+                break
+
+            if job.status == "COMPLETED":
+                profile = await get_current_user_profile(user_id=current_user.id, db=db)
+                await websocket.send_json({
+                    "job_id": str(job.id),
+                    "status": job.status,
+                    "error": job.error_message,
+                    "updated_at": job.updated_at.isoformat() if job.updated_at else None,
+                    "profile": profile
+                })
+                await websocket.close()
+                break
+
+            if job.status == "FAILED":
+                await websocket.send_json({
+                    "job_id": str(job.id),
+                    "status": job.status,
+                    "error": job.error_message,
+                    "updated_at": job.updated_at.isoformat() if job.updated_at else None
+                })
+                await websocket.close()
+                break
+        
+    except WebSocketDisconnect:
+        print("WebSocket client disconnected")
+    except Exception as e:
+        await websocket.send_text(f"An error occurred: {str(e)}")
+        await websocket.close()

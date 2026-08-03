@@ -9,13 +9,16 @@ from app.services.auth_services import generate_and_send_otp
 from app.api.routes.auth import auth_limiter
 from app.db.crud.user import get_user_by_id
 from app.db.crud.profile import get_current_user_profile
+from app.api.deps import RedisLimiter
 router = APIRouter(prefix="/profile", tags=["user-profile"])
 
 class MeResponse(BaseModel):
     profile: dict  # Or your UserProfileResponse schema
     user: UserResponse
 
-@router.get("/me", response_model=MeResponse, dependencies=[Depends(auth_limiter)])
+MeLimiter = RedisLimiter(times=60, seconds=60, group="me")
+
+@router.get("/me", response_model=MeResponse, dependencies=[Depends(MeLimiter)])
 async def me(current_user: UserResponse = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     user_profile = await get_current_user_profile(current_user.id, db)
 
