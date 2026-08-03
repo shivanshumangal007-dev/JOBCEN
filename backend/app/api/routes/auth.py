@@ -176,6 +176,7 @@ async def refresh_access_token(request: Request, response: Response):
 
     # Issue a new short-lived access token as an HTTP-only cookie
     new_access_token = create_access_token(subject=user_id)
+    new_refresh_token = create_refresh_token(subject=user_id)
 
     response.set_cookie(
         key="access_token",
@@ -184,6 +185,14 @@ async def refresh_access_token(request: Request, response: Response):
         secure=True,
         samesite="lax",
         max_age=60 * 15      # 15 minutes in seconds
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7     # 7 days in seconds
     )
     return {"message": "Token refreshed"}
 

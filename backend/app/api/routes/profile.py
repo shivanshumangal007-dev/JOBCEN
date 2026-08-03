@@ -15,7 +15,7 @@ class MeResponse(BaseModel):
     profile: dict  # Or your UserProfileResponse schema
     user: UserResponse
 
-@router.get("/me", response_model=MeResponse, dependencies=[Depends(auth_limiter)])
+@router.get("/me", response_model=MeResponse)
 async def me(current_user: UserResponse = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     user_profile = await get_current_user_profile(current_user.id, db)
 
