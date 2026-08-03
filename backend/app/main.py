@@ -11,6 +11,7 @@ from app.api.routes.profile import router as profile_router
 from app.api.routes.google_auth import router as google_auth_router
 from app.api.routes.parser import router as parser_router
 from app.api.routes.adapters import router as adapter_router
+from app.api.routes.sync_status import router as sync_status_router
 import app.db.models.user  # Import models to ensure they are registered with Base
 import app.db.models.profile  # noqa: F401
 import app.db.models.platform_sync_status  # noqa: F401
@@ -65,3 +66,4 @@ app.include_router(profile_router)
 app.include_router(google_auth_router)
 app.include_router(parser_router)
 app.include_router(adapter_router)
+app.include_router(sync_status_router)
