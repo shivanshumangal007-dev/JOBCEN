@@ -12,5 +12,14 @@
       "matches": ["https://wellfound.com/profile/edit*"],
       "js": ["src/content_scripts/fillers/wellfound_fillers.ts"]
     }
-  ]
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://jobcen.com/*",
+      "http://localhost:3000/*"
+    ]
+  },
+  "background": {
+    "service_worker": "src/background/service_worker.ts"
+  }
 }

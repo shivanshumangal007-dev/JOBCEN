@@ -32,7 +32,7 @@ export default function UpdateFormPage({ params }: { params: Promise<{ updateTyp
       data
     });
     toast.success(`${decodedType} update saved successfully.`);
-    router.push("/dashboard");
+    router.push("/updates");
   };
 
   return (

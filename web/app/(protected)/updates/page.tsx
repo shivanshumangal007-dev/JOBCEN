@@ -7,6 +7,8 @@ import { Check, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUpdateOnWellfound } from "@/hooks/updates";
+import { useStore } from "@/store/useStore";
 
 const PLATFORMS = [
   { id: "linkedin", name: "LinkedIn" },
@@ -18,14 +20,25 @@ export default function UpdatePortalPage() {
   const router = useRouter();
   const [syncing, setSyncing] = useState<string | null>(null);
   const [synced, setSynced] = useState<Record<string, boolean>>({});
-
-  const handleSync = (platformId: string) => {
+  const updates = useStore((state) => state.updates)
+  const handleSync = async (platformId: string) => {
     setSyncing(platformId);
-    // Mock the extension sync flow
-    setTimeout(() => {
-      setSyncing(null);
-      setSynced(prev => ({ ...prev, [platformId]: true }));
-    }, 2500);
+    
+    if(platformId === "wellfound") {
+      const success = await useUpdateOnWellfound(updates);
+      if (success) {
+        setSyncing(null);
+        setSynced(prev => ({ ...prev, [platformId]: true }));
+      } else {
+        setSyncing(null);
+      }
+    } else {
+      // Mock for other platforms
+      setTimeout(() => {
+        setSyncing(null);
+        setSynced(prev => ({ ...prev, [platformId]: true }));
+      }, 2500);
+    }
   };
 
   return (
