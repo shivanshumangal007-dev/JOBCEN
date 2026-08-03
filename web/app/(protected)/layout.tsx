@@ -3,9 +3,18 @@
 import { ProfileLoader } from "@/components/Animated-Loader";
 import { useProfile } from "@/hooks/Profile";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { ReactNode, useEffect } from "react";
 import { useStore } from "@/store/useStore";
+import { Navbar } from "@/components/Navbar";
 
+
+const renderer = (children: ReactNode) => {
+  return <>
+
+    <Navbar/>
+    {children}
+  </>
+}
 export default function ProtectedLayout({
   children,
 }: {
@@ -58,12 +67,12 @@ export default function ProtectedLayout({
 
   // If no profile (404), only allow rendering the onboarding page
   if (isError && (error as any)?.response?.status === 404 && pathname.startsWith("/onboarding")) {
-    return <>{children}</>;
+    return renderer(children);
   }
 
   // If user has a profile, allow rendering anything EXCEPT onboarding (which redirects)
   if (user && !pathname.startsWith("/onboarding")) {
-    return <>{children}</>;
+    return renderer(children);
   }
 
   // Fallback loader while redirects are happening

@@ -131,4 +131,22 @@ const useForgotPassword = () => {
   });
 };
 
-export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword };
+
+const useLogout = () => {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/auth/logout");
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success("Logged out successfully");
+      router.push("/login");
+    },
+    onError: (error: any) => {
+      const message = extractErrorMessage(error);
+      toast.error(message);
+    },
+  })
+}
+export { useCreateAcc, useVerifyOtp, useLoginUser, useForgotPassword, useLogout };

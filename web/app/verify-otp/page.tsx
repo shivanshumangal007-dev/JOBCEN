@@ -52,6 +52,7 @@ export default function VerifyOTPPage() {
           maxLength={6}
           value={otp}
           onChange={(value) => setOtp(value)}
+          autoFocus={true}
         >
           <InputOTPGroup>
             <InputOTPSlot index={0} />
