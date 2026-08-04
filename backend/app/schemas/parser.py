@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class ResumeUploadPayload(BaseModel):
-    raw_text: str  # For handling raw copy-paste or text extractions
+    raw_text: str = Field(..., max_length=500_000)  # ~500KB cap to prevent OOM

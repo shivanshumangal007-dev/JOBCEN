@@ -14,7 +14,7 @@ from app.api.deps import RedisLimiter
 from app.db.crud.profile import get_current_user_profile
 
 router = APIRouter(tags=["Parser"])
-upload_limiter = RedisLimiter(times=2, seconds=60, group="upload")
+upload_limiter = RedisLimiter(times=1, seconds=60, group="upload")
 
 @router.post("/upload", dependencies=[Depends(upload_limiter)])
 async def upload_resume_data(
@@ -57,18 +57,18 @@ async def upload_pdf_resume_data(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    MAX_PDF_SIZE = 10 * 1024 * 1024  # 10 MB
+
     try:
-        job = await create_job_record(db, user_id=current_user.id)
-
-        pdf_bytes = await file.read()
-
-        # Prevent OOM from arbitrarily large uploads
-        MAX_PDF_SIZE = 10 * 1024 * 1024  # 10 MB
+        # Read with a cap to prevent OOM — read one extra byte to detect oversized files
+        pdf_bytes = await file.read(MAX_PDF_SIZE + 1)
         if len(pdf_bytes) > MAX_PDF_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail="File too large. Maximum size is 10MB."
             )
+
+        job = await create_job_record(db, user_id=current_user.id)
 
         b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
 
@@ -81,6 +81,8 @@ async def upload_pdf_resume_data(
             "status": "pending",
             "message": "Resume parsing initiated. You can safely close your client device or browse elsewhere."
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -96,8 +98,9 @@ async def get_parser_result_through_websocket(
     db: AsyncSession = Depends(get_db)
 ):
     await websocket.accept()
+    MAX_POLLS = 300  # 5 minutes (300 * 1s)
     try:
-        while True:
+        for _ in range(MAX_POLLS):
             await asyncio.sleep(1)
             # Expire session so we don't get cached results
             db.expire_all()
@@ -106,7 +109,7 @@ async def get_parser_result_through_websocket(
             if not job:
                 await websocket.send_text("Job task tracker not found or access unauthorized.")
                 await websocket.close()
-                break
+                return
 
             if job.status == "COMPLETED":
                 profile = await get_current_user_profile(user_id=current_user.id, db=db)
@@ -118,7 +121,7 @@ async def get_parser_result_through_websocket(
                     "profile": profile
                 })
                 await websocket.close()
-                break
+                return
 
             if job.status == "FAILED":
                 await websocket.send_json({
@@ -128,7 +131,11 @@ async def get_parser_result_through_websocket(
                     "updated_at": job.updated_at.isoformat() if job.updated_at else None
                 })
                 await websocket.close()
-                break
+                return
+
+        # Timeout reached
+        await websocket.send_json({"status": "TIMEOUT", "error": "Polling timed out after 5 minutes."})
+        await websocket.close()
         
     except WebSocketDisconnect:
         print("WebSocket client disconnected")

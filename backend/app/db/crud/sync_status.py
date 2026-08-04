@@ -10,6 +10,8 @@ async def create_or_update_sync_status(
     platform: str,
     status: SyncStatus,
     error_message: str | None = None,
+    data_updated: dict | None = None,
+    commit: bool = True,
 ) -> PlatformSyncStatus:
     """Create a new sync status record or update the existing one for a user+platform pair."""
     result = await db.execute(
@@ -23,6 +25,8 @@ async def create_or_update_sync_status(
     if record:
         record.status = status
         record.error_message = error_message
+        if data_updated is not None:
+            record.data_updated = data_updated
         if status == SyncStatus.SYNCED:
             record.last_synced_at = datetime.now(timezone.utc)
     else:
@@ -31,13 +35,18 @@ async def create_or_update_sync_status(
             platform=platform,
             status=status,
             error_message=error_message,
+            data_updated=data_updated,
         )
         if status == SyncStatus.SYNCED:
             record.last_synced_at = datetime.now(timezone.utc)
         db.add(record)
 
-    await db.commit()
-    await db.refresh(record)
+    if commit:
+        await db.commit()
+        await db.refresh(record)
+    else:
+        await db.flush()
+
     return record
 
 

@@ -4,7 +4,7 @@ from app.schemas.user import UserCreate
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
 
-import os
+
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
@@ -30,23 +30,26 @@ google_oauth.register(
 )
 
 
+_is_prod = settings.ENVIRONMENT == "production"
+
+
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     """Helper to set both auth cookies consistently."""
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=7 * 24 * 3600  # 7 days in seconds
-    )
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,
+        secure=_is_prod,
         samesite="lax",
-        max_age=60 * 15  # 15 minutes in seconds
+        max_age=60 * 15  # 15 minutes
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=_is_prod,
+        samesite="lax",
+        max_age=7 * 24 * 3600  # 7 days
     )
 
 

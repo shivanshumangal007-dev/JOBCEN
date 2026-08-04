@@ -59,13 +59,13 @@ async def send_verification_email(email: str):
         "sender": {"name": settings.BREVO_SENDER_NAME, "email": settings.BREVO_SENDER_EMAIL},
         "to": [{"email": email}],
         "subject": "Activity Verification",
-        "htmlContent": """
+        "htmlContent": f"""
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h3>Activity on your JOBCEN Account</h3>
                 <p>We received a request to sign up for a JOBCEN account using this email address.</p>
                 <p><strong>However, an account with this email already exists.</strong></p>
-                <p>If this was you, please <a href="https://yourdomain.com/login" style="color: #4F46E5;">login here</a>.</p>
-                <p>If you forgot your password, you can <a href="https://yourdomain.com/forgot-password" style="color: #4F46E5;">click here to reset it</a>.</p>
+                <p>If this was you, please <a href="{settings.FRONTEND_URL}/login" style="color: #4F46E5;">login here</a>.</p>
+                <p>If you forgot your password, you can <a href="{settings.FRONTEND_URL}/forgot-password" style="color: #4F46E5;">click here to reset it</a>.</p>
                 <p style="font-size: 0.9em; color: #777;">If you did not make this request, you can safely ignore this email.</p>
             </div>
         """

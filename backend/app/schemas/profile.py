@@ -61,23 +61,23 @@ class JobPreferences(BaseModel):
     culture_preference: Optional[str] = None  # What they value in their next team
 
 class UniversalProfileSchema(BaseModel):
-    full_name: str
+    full_name: Optional[str] = None
     primary_role: Optional[str] = None       # e.g., "Full-Stack Engineer"
     years_of_experience: Optional[float] = 0.0
-    bio: str                                  # Master summary profile section
+    bio: Optional[str] = None                                  # Master summary profile section
     pronouns: Optional[str] = None
     gender: Optional[str] = None
     
     # Nested Sub-schemas
-    contact: ContactInfo
-    socials: SocialProfiles
-    experience: List[WorkExperience]
-    education: List[EducationItem]
-    projects: List[ProjectItem] = []
-    skills: List[str]
-    certifications: List[Certification] = []
-    preferences: JobPreferences
-    achievements: List[str] = []              # General awards/honors lists
+    contact: Optional[ContactInfo]
+    socials: Optional[SocialProfiles]
+    experience: Optional[List[WorkExperience]] = []
+    education: Optional[List[EducationItem]] = []
+    projects: Optional[List[ProjectItem]] = []
+    skills: Optional[List[str]] = []
+    certifications: Optional[List[Certification]] = []
+    preferences: Optional[JobPreferences]
+    achievements: Optional[List[str]] = []              # General awards/honors lists
 
     class Config:
         # Allows parsing from SQLAlchemy models or internal object attributes directly

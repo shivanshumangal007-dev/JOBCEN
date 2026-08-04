@@ -1,7 +1,7 @@
 import enum
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Enum, UUID, Integer
+from sqlalchemy import String, DateTime, ForeignKey, Enum, UUID, Integer, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.db.session import Base
@@ -16,8 +16,9 @@ class SyncStatus(str, enum.Enum):
 
 class PlatformSyncStatus(Base):
     __tablename__ = "platform_sync_status"
+    __table_args__ = (UniqueConstraint("user_id", "platform", name="uq_user_platform"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -32,6 +33,8 @@ class PlatformSyncStatus(Base):
         nullable=False,
         default=SyncStatus.PENDING,
     )
+
+    data_updated: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
 

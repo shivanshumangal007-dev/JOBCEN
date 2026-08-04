@@ -30,6 +30,8 @@ async def authenticate_user(email_or_username: str, password: str, db: AsyncSess
     
     if not user_record:
         return False
+    if not user_record.hashed_password:
+        return False
     if not verify_password(password, user_record.hashed_password):
         return False
     return user_record

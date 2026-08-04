@@ -3,7 +3,7 @@ from jwt import decode, PyJWTError
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-import os
+
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -22,7 +22,27 @@ otp_limiter = RedisLimiter(times=5, seconds=60, group="otp")
 refresh_limiter = RedisLimiter(times=10, seconds=60, group="refresh")
 forgot_password_limiter = RedisLimiter(times=5, seconds=60, group="forgot_password")
 
-environment = os.getenv("ENVIRONMENT")
+_is_prod = settings.ENVIRONMENT == "production"
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str | None = None):
+    """Set auth cookies with secure flag derived from environment."""
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=_is_prod,
+        samesite="lax",
+        max_age=60 * 15  # 15 minutes
+    )
+    if refresh_token:
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=_is_prod,
+            samesite="lax",
+            max_age=7 * 24 * 3600  # 7 days
+        )
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_limiter)])
 async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -43,17 +63,18 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 
-@router.post("/login-testing", dependencies=[Depends(auth_limiter)])
-async def login_testing(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    user = await authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+if not _is_prod:
+    @router.post("/login-testing", dependencies=[Depends(auth_limiter)])
+    async def login_testing(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+        user = await authenticate_user(form_data.username, form_data.password, db)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    return await generate_and_send_otp(email=user.email, purpose="login")
+        return await generate_and_send_otp(email=user.email, purpose="login")
 
 
 @router.post("/login", dependencies=[Depends(auth_limiter)])
@@ -90,26 +111,8 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
         user.is_active = True
         await db.commit()
         access_token = create_access_token(user.id)
-        refresh_token = create_refresh_token(user.id)
-
-        if remember_me:
-            response.set_cookie(
-                key="refresh_token",
-                value=refresh_token,
-                httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-                secure=True,         # Requires HTTPS in production
-                samesite="lax",      # CSRF protection
-                max_age=7 * 24 * 3600 # 7 days in seconds
-            )
-
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-            secure=True,         # Requires HTTPS in production
-            samesite="lax",      # CSRF protection
-            max_age=60 * 15      # 15 minutes in seconds
-        )
+        refresh_token = create_refresh_token(user.id) if remember_me else None
+        _set_auth_cookies(response, access_token, refresh_token)
         
         return {"message": "Account verified successfully"}
         
@@ -118,25 +121,8 @@ async def verify_otp_entered_by_user(response: Response, request: VerifyOTP, db:
             user.is_active = True
             await db.commit()
         access_token = create_access_token(user.id)
-        refresh_token = create_refresh_token(user.id)
-        if remember_me:
-            response.set_cookie(
-                key="refresh_token",
-                value=refresh_token,
-                httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-                secure=True,         # Requires HTTPS in production
-                samesite="lax",      # CSRF protection
-                max_age=7 * 24 * 3600 # 7 days in seconds
-            )
-
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,       # Prevents JavaScript reading the cookie (XSS protection)
-            secure=True,         # Requires HTTPS in production
-            samesite="lax",      # CSRF protection
-            max_age=60 * 15      # 15 minutes in seconds
-        )
+        refresh_token = create_refresh_token(user.id) if remember_me else None
+        _set_auth_cookies(response, access_token, refresh_token)
         return {"message": "Login verified successfully"}
         
     elif purpose == "delete":
@@ -177,23 +163,7 @@ async def refresh_access_token(request: Request, response: Response):
     # Issue a new short-lived access token as an HTTP-only cookie
     new_access_token = create_access_token(subject=user_id)
     new_refresh_token = create_refresh_token(subject=user_id)
-
-    response.set_cookie(
-        key="access_token",
-        value=new_access_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=60 * 15      # 15 minutes in seconds
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=60 * 60 * 24 * 7     # 7 days in seconds
-    )
+    _set_auth_cookies(response, new_access_token, new_refresh_token)
     return {"message": "Token refreshed"}
 
 @router.post("/logout", dependencies=[Depends(refresh_limiter)])

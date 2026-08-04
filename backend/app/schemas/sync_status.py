@@ -8,12 +8,14 @@ class SyncStatusBase(BaseModel):
     platform: str
     status: SyncStatus
     error_message: Optional[str] = None
+    data_updated: Optional[dict] = None
 
-class SyncStatusCreate(SyncStatusBase):
-    pass
+class SyncStatusCreate(BaseModel):
+    platform: str
+    data_updated: Optional[dict] = None
 
 class SyncStatusResponse(SyncStatusBase):
-    id: int
+    id: uuid.UUID
     user_id: uuid.UUID
     last_synced_at: Optional[datetime] = None
     created_at: datetime

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/adapter", tags=["Adapters"])
 adapter_limiter = RedisLimiter(times=10, seconds=60, group="adapter")
 
 
-@router.get("/platforms")
+@router.get("/platforms", dependencies=[Depends(adapter_limiter)])
 async def list_supported_platforms():
     """Return a list of all supported job platforms."""
     return {"platforms": SyncService.get_supported_platforms()}

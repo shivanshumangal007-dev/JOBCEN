@@ -23,7 +23,9 @@ class UserAuthenticate(BaseModel):
 class UserResponse(UserBase):
     id: uuid.UUID
     is_active: bool
+    resume: str | None = None
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

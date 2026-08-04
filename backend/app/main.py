@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 import asyncio
 import logging
 from fastapi.middleware.cors import CORSMiddleware
-import os
+
+from app.core.config import settings
 
 from app.db.session import engine, Base
 from app.api.routes.auth import router as auth_router
@@ -15,6 +16,8 @@ from app.api.routes.sync_status import router as sync_status_router
 import app.db.models.user  # Import models to ensure they are registered with Base
 import app.db.models.profile  # noqa: F401
 import app.db.models.platform_sync_status  # noqa: F401
+import app.db.models.job  # noqa: F401
+from app.tasks.mark_stale import mark_stale_jobs
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -34,10 +37,24 @@ async def lifespan(app: FastAPI):
                 raise
             logger.warning(f"Database connection failed (attempt {attempt + 1}/{max_retries}): {e}. Retrying in 2 seconds...")
             await asyncio.sleep(2)
-            
+    # Background task: sweep stale PROCESSING jobs every 10 minutes
+    async def _stale_job_sweeper():
+        while True:
+            await asyncio.sleep(600)  # 10 minutes
+            try:
+                count = await mark_stale_jobs()
+                if count:
+                    logger.info(f"Marked {count} stale job(s) as FAILED.")
+            except Exception as e:
+                logger.warning(f"Stale job sweeper error: {e}")
+
+    sweeper_task = asyncio.create_task(_stale_job_sweeper())
+
     yield
 
-environment = os.getenv("ENVIRONMENT")
+    sweeper_task.cancel()
+
+environment = settings.ENVIRONMENT
 if environment == "production":
     app = FastAPI(
         lifespan=lifespan,
@@ -51,10 +68,10 @@ else:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 @app.get("/")
