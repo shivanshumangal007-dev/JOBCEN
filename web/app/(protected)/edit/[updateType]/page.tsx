@@ -7,12 +7,14 @@ import { useStore } from "@/store/useStore";
 import { ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { use } from "react";
+import { use, useState } from "react";
+import { useAddPendingBulkSync } from "@/hooks/updatesBackend";
 
 export default function UpdateFormPage({ params }: { params: Promise<{ updateType: string }> }) {
   const router = useRouter();
   const { updateType } = use(params);
-  const addUpdate = useStore((state) => state.addUpdate);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const AddPendingBulkSyncHook = useAddPendingBulkSync();
   
   const decodedType = decodeURIComponent(updateType) as SchemaType;
   const isValidType = Object.keys(updateSchemas).includes(decodedType);
@@ -26,13 +28,29 @@ export default function UpdateFormPage({ params }: { params: Promise<{ updateTyp
     );
   }
 
-  const handleSubmit = (data: any) => {
-    addUpdate({
-      type: decodedType as any,
-      data
-    });
-    toast.success(`${decodedType} update saved successfully.`);
-    router.push("/updates");
+  const handleSubmit = async (data: any) => {
+    // addUpdate({
+    //   type: decodedType as any,
+    //   data
+    // });
+    setIsSubmitting(true)
+    try {
+      const response = await AddPendingBulkSyncHook.mutateAsync({
+        platforms: ["linkedin", "internshala", "wellfound"],
+        data_updated: {
+          type: decodedType,
+          data: data
+        }
+      });
+      console.log(response);
+      toast.success(`${decodedType} update saved successfully.`);
+      router.push("/updates");
+    } catch (error) {
+      console.log(error);
+    }
+    finally{
+      setIsSubmitting(false)
+    }
   };
 
   return (
@@ -52,7 +70,7 @@ export default function UpdateFormPage({ params }: { params: Promise<{ updateTyp
         </p>
       </div>
 
-      <DynamicUpdateForm type={decodedType} onSubmit={handleSubmit} />
+      <DynamicUpdateForm type={decodedType} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
     </PageTransition>
   );
 }

@@ -26,7 +26,14 @@ async def create_or_update_sync_status(
         record.status = status
         record.error_message = error_message
         if data_updated is not None:
-            record.data_updated = data_updated
+            if record.data_updated:
+                # Store as an array [data1, data2]
+                if isinstance(record.data_updated, list):
+                    record.data_updated = record.data_updated + [data_updated]
+                else:
+                    record.data_updated = [record.data_updated, data_updated]
+            else:
+                record.data_updated = [data_updated]
         if status == SyncStatus.SYNCED:
             record.last_synced_at = datetime.now(timezone.utc)
     else:
@@ -35,7 +42,7 @@ async def create_or_update_sync_status(
             platform=platform,
             status=status,
             error_message=error_message,
-            data_updated=data_updated,
+            data_updated=[data_updated] if data_updated is not None else None,
         )
         if status == SyncStatus.SYNCED:
             record.last_synced_at = datetime.now(timezone.utc)

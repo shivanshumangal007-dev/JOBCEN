@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import uuid
 from app.db.models.platform_sync_status import SyncStatus
@@ -8,10 +8,14 @@ class SyncStatusBase(BaseModel):
     platform: str
     status: SyncStatus
     error_message: Optional[str] = None
-    data_updated: Optional[dict] = None
+    data_updated: Optional[list | dict] = None
 
 class SyncStatusCreate(BaseModel):
     platform: str
+    data_updated: Optional[dict] = None
+
+class SyncStatusBulkCreate(BaseModel):
+    platforms: List[str]
     data_updated: Optional[dict] = None
 
 class SyncStatusResponse(SyncStatusBase):

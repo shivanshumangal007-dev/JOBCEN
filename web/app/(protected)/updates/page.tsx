@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUpdateOnWellfound } from "@/hooks/updates";
 import { useStore } from "@/store/useStore";
+import { useFetchAllSyncStatuses } from "@/hooks/updatesBackend";
 
 const PLATFORMS = [
   { id: "linkedin", name: "LinkedIn" },
@@ -20,15 +21,15 @@ export default function UpdatePortalPage() {
   const router = useRouter();
   const [syncing, setSyncing] = useState<string | null>(null);
   const [synced, setSynced] = useState<Record<string, boolean>>({});
-  const updates = useStore((state) => state.updates)
+  const updates = useStore((state) => state.updates);
   const handleSync = async (platformId: string) => {
     setSyncing(platformId);
-    
-    if(platformId === "wellfound") {
+
+    if (platformId === "wellfound") {
       const success = await useUpdateOnWellfound(updates);
       if (success) {
         setSyncing(null);
-        setSynced(prev => ({ ...prev, [platformId]: true }));
+        setSynced((prev) => ({ ...prev, [platformId]: true }));
       } else {
         setSyncing(null);
       }
@@ -36,21 +37,29 @@ export default function UpdatePortalPage() {
       // Mock for other platforms
       setTimeout(() => {
         setSyncing(null);
-        setSynced(prev => ({ ...prev, [platformId]: true }));
+        setSynced((prev) => ({ ...prev, [platformId]: true }));
       }, 2500);
     }
   };
+  const { data: syncData } = useFetchAllSyncStatuses();
+  console.log("syncData => ", syncData);
 
   return (
     <PageTransition className="flex-1 flex flex-col min-h-[100dvh] max-w-4xl mx-auto w-full p-8">
       <div className="mb-8">
-        <Button variant="ghost" className="pl-0 text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
+        <Button
+          variant="ghost"
+          className="pl-0 text-muted-foreground hover:text-foreground"
+          onClick={() => router.back()}
+        >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
       </div>
 
       <div className="space-y-4 mb-12">
-        <h1 className="text-4xl md:text-5xl font-heading font-medium text-primary">Update Portal</h1>
+        <h1 className="text-4xl md:text-5xl font-heading font-medium text-primary">
+          Update Portal
+        </h1>
         <p className="text-muted-foreground font-light text-xl">
           It's time for the main thing — pushing your updates to every site.
         </p>
@@ -62,7 +71,10 @@ export default function UpdatePortalPage() {
           const isSynced = synced[platform.id];
 
           return (
-            <Card key={platform.id} className="p-6 flex items-center justify-between rounded-none bg-card hover:border-primary/50 transition-colors border-border">
+            <Card
+              key={platform.id}
+              className="p-6 flex items-center justify-between rounded-none bg-card hover:border-primary/50 transition-colors border-border"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center font-heading font-medium text-xl text-primary">
                   {platform.name[0]}
@@ -87,7 +99,11 @@ export default function UpdatePortalPage() {
                     >
                       <motion.div
                         animate={{ rotate: 360 }}
-                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 1,
+                          ease: "linear",
+                        }}
                       >
                         <RefreshCw className="w-5 h-5" />
                       </motion.div>

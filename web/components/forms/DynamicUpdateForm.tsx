@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
 
 // Define schemas
 export const updateSchemas = {
@@ -51,11 +52,13 @@ export type SchemaType = keyof typeof updateSchemas;
 export function DynamicUpdateForm({ 
   type, 
   defaultValues = {}, 
-  onSubmit 
+  onSubmit,
+  isSubmitting 
 }: { 
   type: SchemaType, 
   defaultValues?: any, 
   onSubmit: (data: any) => void 
+  isSubmitting: boolean
 }) {
   const schema = updateSchemas[type];
   const form = useForm({
@@ -102,8 +105,8 @@ export function DynamicUpdateForm({
             )}
           />
         ))}
-        <Button type="submit" className="w-full rounded-none py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
-          Save Update
+        <Button type="submit" className="w-full rounded-none py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Save Update"}
         </Button>
       </form>
     </Form>

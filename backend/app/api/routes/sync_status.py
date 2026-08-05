@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.platform_sync_status import SyncStatus
 from app.db.session import get_db
 from app.schemas.user import UserResponse
-from app.schemas.sync_status import SyncStatusCreate, SyncStatusResponse
+from app.schemas.sync_status import SyncStatusCreate, SyncStatusResponse, SyncStatusBulkCreate
 from app.services.auth_services import get_current_user
 from app.api.routes.auth import auth_limiter
 from app.db.crud.sync_status import (
@@ -68,3 +68,22 @@ async def update_sync_status(
         status=SyncStatus.PENDING,
         data_updated=sync_data.data_updated,
     )
+
+@router.post("/bulk", response_model=List[SyncStatusResponse], dependencies=[Depends(syncingLimiter)])
+async def bulk_update_sync_status(
+    bulk_data: SyncStatusBulkCreate,
+    current_user: UserResponse = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    """Create or initialize the sync status for multiple platforms."""
+    updated_records = []
+    for platform in bulk_data.platforms:
+        record = await create_or_update_sync_status(
+            db=db,
+            user_id=str(current_user.id),
+            platform=platform,
+            status=SyncStatus.PENDING,
+            data_updated=bulk_data.data_updated,
+        )
+        updated_records.append(record)
+    return updated_records

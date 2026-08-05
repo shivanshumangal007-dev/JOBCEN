@@ -34,7 +34,7 @@ class PlatformSyncStatus(Base):
         default=SyncStatus.PENDING,
     )
 
-    data_updated: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    data_updated: Mapped[list | dict | None] = mapped_column(JSON, nullable=True)
 
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
 
