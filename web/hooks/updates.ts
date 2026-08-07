@@ -41,8 +41,13 @@ export async function useUpdateOnWellfound(updateData: ProfileUpdate[]): Promise
     }
   }
   
-  if (successCount > 0 || updateData.length === 0) {
-    if (successCount > 0) toast.success("Opening Wellfound to sync your profile...");
+  if (updateData.length === 0) {
+    toast.error("No updates found to sync.");
+    return false;
+  }
+  
+  if (successCount > 0) {
+    toast.success("Opening Wellfound to sync your profile...");
     return true;
   }
   return false;

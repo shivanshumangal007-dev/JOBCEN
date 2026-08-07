@@ -26,7 +26,11 @@ export default function UpdatePortalPage() {
     setSyncing(platformId);
 
     if (platformId === "wellfound") {
-      const success = await useUpdateOnWellfound(updates);
+      const wellfoundPending = syncData?.filter(s => s.platform === "wellfound" && s.status === "PENDING") || [];
+      // Pass the actual data payloads as the updates
+      const wellfoundUpdates = wellfoundPending.map(s => s.data_updated).filter(Boolean) as any[];
+
+      const success = await useUpdateOnWellfound(wellfoundUpdates);
       if (success) {
         setSyncing(null);
         setSynced((prev) => ({ ...prev, [platformId]: true }));
@@ -69,6 +73,7 @@ export default function UpdatePortalPage() {
         {PLATFORMS.map((platform) => {
           const isSyncing = syncing === platform.id;
           const isSynced = synced[platform.id];
+          const platformPendingSyncs = syncData?.filter(s => s.platform === platform.id && s.status === "PENDING") || [];
 
           return (
             <Card
@@ -82,7 +87,7 @@ export default function UpdatePortalPage() {
                 <div>
                   <h3 className="text-xl font-medium">{platform.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {isSynced ? "Up to date" : "1 pending update"}
+                    {isSynced ? "Up to date" : platformPendingSyncs.length === 1 ? "1 pending update" : `${platformPendingSyncs.length} pending updates`}
                   </p>
                 </div>
               </div>
