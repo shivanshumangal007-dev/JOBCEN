@@ -15,7 +15,7 @@ export default function Home() {
 
   const handleCtaClick = () => {
     if (hasProfile) {
-      router.push("/edit");
+      router.push("/dashboard");
     } else {
       router.push("/onboarding");
     }
